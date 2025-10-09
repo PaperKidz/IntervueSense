@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, AlertCircle, Sparkles, Users, Smile } from 'lucide-react';
+import { Camera, AlertCircle, Sparkles, Users, Smile, Activity } from 'lucide-react';
 
 export default function EmotionDetectionApp() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [emotionData, setEmotionData] = useState(null);
+  const [smoothedEmotions, setSmoothedEmotions] = useState(null);
   const [error, setError] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [apiStatus, setApiStatus] = useState('checking');
-  const [videoReady, setVideoReady] = useState(false);
-  const [debugInfo, setDebugInfo] = useState('');
+  const [lastAnalysisTime, setLastAnalysisTime] = useState(null);
+  const [analysisCount, setAnalysisCount] = useState(0);
   
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const intervalRef = useRef(null);
+  const emotionHistoryRef = useRef([]);
 
   const emotionColors = {
     happy: '#10B981',
@@ -34,40 +36,29 @@ export default function EmotionDetectionApp() {
 
   const checkApiHealth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/health');
+      const response = await fetch('/api/health', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (response.ok) {
+        await response.json();
         setApiStatus('connected');
-        setDebugInfo('API connected successfully');
       } else {
         setApiStatus('error');
-        setDebugInfo('API returned error status');
       }
     } catch (err) {
       setApiStatus('error');
       setError('Cannot connect to backend API. Make sure Flask server is running on port 5000.');
-      setDebugInfo('API connection failed: ' + err.message);
     }
   };
 
   const startWebcam = async () => {
     try {
       setError(null);
-      setVideoReady(false);
-      setDebugInfo('Requesting camera access...');
-      
-      // Wait a bit to ensure refs are ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (!videoRef.current) {
-        setDebugInfo('Video element still not ready, retrying...');
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      
-      if (!videoRef.current) {
-        throw new Error('Video element not found after waiting');
-      }
-      
-      setDebugInfo('Video element found, requesting camera...');
+      setAnalysisCount(0);
       
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
@@ -77,84 +68,91 @@ export default function EmotionDetectionApp() {
         } 
       });
       
-      setDebugInfo('Camera access granted');
       streamRef.current = stream;
-      
       const video = videoRef.current;
       video.srcObject = stream;
       
-      setDebugInfo('Stream attached to video element');
-      
-      // Wait for metadata
-      const loadPromise = new Promise((resolve, reject) => {
-        video.onloadedmetadata = () => {
-          setDebugInfo(`Metadata loaded: ${video.videoWidth}x${video.videoHeight}`);
-          resolve();
-        };
-        video.onerror = (e) => {
-          setDebugInfo('Video element error: ' + e);
-          reject(new Error('Video element error'));
-        };
-        
-        // Timeout after 5 seconds
+      await new Promise((resolve, reject) => {
+        video.onloadedmetadata = resolve;
+        video.onerror = reject;
         setTimeout(() => reject(new Error('Timeout waiting for video')), 5000);
       });
       
-      await loadPromise;
-      
-      // Try to play
-      setDebugInfo('Attempting to play video...');
       await video.play();
-      
-      setDebugInfo('Video playing successfully!');
-      setVideoReady(true);
       setIsStreaming(true);
       
-      // Start analyzing
       setTimeout(() => {
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        intervalRef.current = setInterval(captureAndAnalyze, 1500);
-        setDebugInfo('Analysis started - System ready!');
-      }, 1000);
+        if (!streamRef.current) return;
+        
+        const runContinuousAnalysis = async () => {
+          while (streamRef.current) {
+            await captureAndAnalyze();
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        };
+        
+        runContinuousAnalysis();
+      }, 1500);
       
     } catch (err) {
-      setDebugInfo('Error: ' + err.message);
       setError('Failed to start webcam: ' + err.message);
       stopWebcam();
     }
   };
 
   const stopWebcam = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
     
-    if (videoRef.current) {
-      videoRef.current.srcObject = null;
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
     
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+      videoRef.current.load();
+    }
+    
+    emotionHistoryRef.current = [];
     setIsStreaming(false);
-    setVideoReady(false);
     setEmotionData(null);
-    setDebugInfo('Webcam stopped');
+    setSmoothedEmotions(null);
+    setAnalysisCount(0);
+    setIsAnalyzing(false);
+  };
+
+  const smoothEmotions = (newEmotions) => {
+    const historyLength = 5;
+    emotionHistoryRef.current.push(newEmotions);
+    
+    if (emotionHistoryRef.current.length > historyLength) {
+      emotionHistoryRef.current.shift();
+    }
+    
+    const averaged = {};
+    const emotionKeys = Object.keys(newEmotions);
+    
+    emotionKeys.forEach(emotion => {
+      const sum = emotionHistoryRef.current.reduce((acc, curr) => acc + (curr[emotion] || 0), 0);
+      averaged[emotion] = sum / emotionHistoryRef.current.length;
+    });
+    
+    return averaged;
   };
 
   const captureAndAnalyze = async () => {
-    if (!videoRef.current || !canvasRef.current || isAnalyzing || !videoReady) {
-      return;
-    }
-    
-    if (videoRef.current.readyState !== 4) {
-      return;
-    }
+    if (!videoRef.current || !canvasRef.current) return;
+    if (!streamRef.current) return;
+    if (isAnalyzing) return;
+    if (videoRef.current.readyState !== 4) return;
     
     setIsAnalyzing(true);
+    const startTime = Date.now();
+    const currentCount = analysisCount + 1;
+    setAnalysisCount(currentCount);
     
     try {
       const video = videoRef.current;
@@ -166,9 +164,9 @@ export default function EmotionDetectionApp() {
       
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
-      const imageData = canvas.toDataURL('image/jpeg', 0.8);
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
       
-      const response = await fetch('http://localhost:5000/api/analyze-emotion', {
+      const response = await fetch('/api/analyze-emotion',{
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -176,14 +174,34 @@ export default function EmotionDetectionApp() {
         body: JSON.stringify({ image: imageData }),
       });
       
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      const analysisTime = Date.now() - startTime;
       
       if (data.success) {
         setEmotionData(data);
+        
+        const smoothed = smoothEmotions(data.emotions);
+        const dominantEmotion = Object.entries(smoothed).reduce((a, b) => 
+          smoothed[a[0]] > smoothed[b[0]] ? a : b
+        )[0];
+        
+        setSmoothedEmotions({
+          emotions: smoothed,
+          dominant_emotion: dominantEmotion,
+          face_count: data.face_count,
+          faces: data.faces
+        });
+        
         setError(null);
-        setDebugInfo(`Detected: ${data.dominant_emotion} (${data.face_count} faces)`);
+        setLastAnalysisTime(analysisTime);
       } else {
-        setError(data.error || 'Failed to analyze emotion');
+        if (!emotionData) {
+          setError(data.error || 'No face detected');
+        }
       }
     } catch (err) {
       if (!emotionData) {
@@ -194,9 +212,26 @@ export default function EmotionDetectionApp() {
     }
   };
 
-  const dominantColor = emotionData?.dominant_emotion 
-    ? emotionColors[emotionData.dominant_emotion.toLowerCase()] || '#9CA3AF'
+  const displayData = smoothedEmotions || emotionData;
+  
+  const dominantColor = displayData?.dominant_emotion 
+    ? emotionColors[displayData.dominant_emotion.toLowerCase()] || '#9CA3AF'
     : '#9CA3AF';
+
+  const calculateMetrics = () => {
+    if (!displayData?.emotions) return { confidence: 0, nervousness: 0 };
+    
+    const e = displayData.emotions;
+    const positive = (e.happy || 0) + (e.neutral || 0);
+    const negative = (e.fear || 0) + (e.sad || 0) + (e.angry || 0) + (e.disgust || 0);
+    
+    const confidence = Math.max(0, Math.min(100, positive - (negative * 0.5)));
+    const nervousness = Math.max(0, Math.min(100, negative * 0.6));
+    
+    return { confidence, nervousness };
+  };
+
+  const metrics = calculateMetrics();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white p-4 md:p-8">
@@ -204,30 +239,45 @@ export default function EmotionDetectionApp() {
         <div className="text-center mb-6">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Sparkles className="w-8 h-8 text-yellow-400" />
-            <h1 className="text-3xl md:text-4xl font-bold">Emotion Detection System</h1>
+            <h1 className="text-3xl md:text-4xl font-bold">Intervuesense</h1>
             <Sparkles className="w-8 h-8 text-yellow-400" />
           </div>
           <p className="text-gray-300">Real-time facial emotion recognition using AI</p>
         </div>
 
-        <div className="mb-4 flex items-center justify-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${
-            apiStatus === 'connected' ? 'bg-green-500' : 
-            apiStatus === 'error' ? 'bg-red-500' : 
-            'bg-yellow-500'
-          } animate-pulse`}></div>
-          <span className="text-sm">
-            {apiStatus === 'connected' ? 'Connected to API' : 
-             apiStatus === 'error' ? 'API Disconnected' : 
-             'Checking API...'}
-          </span>
-        </div>
-
-        {debugInfo && (
-          <div className="mb-4 bg-blue-500/20 border border-blue-500 rounded-lg p-3 text-center">
-            <p className="text-sm text-blue-200">Debug: {debugInfo}</p>
+        <div className="mb-4 flex items-center justify-center gap-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <div className={`w-3 h-3 rounded-full ${
+              apiStatus === 'connected' ? 'bg-green-500' : 
+              apiStatus === 'error' ? 'bg-red-500' : 
+              'bg-yellow-500'
+            } animate-pulse`}></div>
+            <span className="text-sm">
+              {apiStatus === 'connected' ? 'API Connected' : 
+               apiStatus === 'error' ? 'API Disconnected' : 
+               'Checking API...'}
+            </span>
           </div>
-        )}
+          {isStreaming && (
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded-full bg-blue-500 animate-pulse"></div>
+              <span className="text-sm text-blue-300">Live Detection Active</span>
+            </div>
+          )}
+          {analysisCount > 0 && (
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-blue-400" />
+              <span className="text-sm text-gray-300">
+                {analysisCount} analyses
+              </span>
+            </div>
+          )}
+          {lastAnalysisTime && (
+            <span className="text-xs text-gray-400">
+              {lastAnalysisTime}ms
+            </span>
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
@@ -254,7 +304,7 @@ export default function EmotionDetectionApp() {
                     </div>
                   )}
                   
-                  {isStreaming && !videoReady && (
+                  {isStreaming && videoRef.current?.readyState !== 4 && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-10">
                       <div className="text-center">
                         <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
@@ -264,12 +314,13 @@ export default function EmotionDetectionApp() {
                   )}
                   
                   {isAnalyzing && (
-                    <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs z-20">
+                    <div className="absolute top-4 right-4 bg-blue-500 text-white px-3 py-1 rounded-full text-xs z-20 animate-pulse flex items-center gap-2">
+                      <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
                       Analyzing...
                     </div>
                   )}
                   
-                  {videoReady && emotionData && emotionData.faces && emotionData.faces.map((face, idx) => {
+                  {isStreaming && displayData && displayData.faces && displayData.faces.map((face, idx) => {
                     const videoWidth = videoRef.current?.videoWidth || 640;
                     const videoHeight = videoRef.current?.videoHeight || 480;
                     return (
@@ -300,14 +351,14 @@ export default function EmotionDetectionApp() {
                     className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all"
                   >
                     <Camera className="w-5 h-5" />
-                    Start Webcam
+                    Start Detection
                   </button>
                 ) : (
                   <button
                     onClick={stopWebcam}
                     className="flex-1 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 px-6 py-3 rounded-lg font-semibold transition-all"
                   >
-                    Stop Webcam
+                    Stop Detection
                   </button>
                 )}
               </div>
@@ -328,17 +379,17 @@ export default function EmotionDetectionApp() {
                 Current Emotion
               </h3>
               
-              {emotionData ? (
+              {displayData ? (
                 <div className="text-center">
                   <div 
                     className="text-4xl md:text-5xl font-bold mb-2 animate-pulse"
                     style={{ color: dominantColor }}
                   >
-                    {emotionData.dominant_emotion.toUpperCase()}
+                    {displayData.dominant_emotion.toUpperCase()}
                   </div>
                   <div className="flex items-center justify-center gap-2 text-gray-400">
                     <Users className="w-4 h-4" />
-                    <span>{emotionData.face_count} face(s) detected</span>
+                    <span>{displayData.face_count} face(s) detected</span>
                   </div>
                 </div>
               ) : (
@@ -350,11 +401,56 @@ export default function EmotionDetectionApp() {
             </div>
 
             <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+              <h3 className="text-xl font-semibold mb-4">Confidence & Nervousness</h3>
+              
+              {displayData ? (
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="flex items-center gap-2">
+                        <span className="text-2xl">💪</span>
+                        <span className="font-semibold">Confidence</span>
+                      </span>
+                      <span className="font-bold text-green-400">{metrics.confidence.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-3">
+                      <div
+                        className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-green-400 to-emerald-500"
+                        style={{ width: `${metrics.confidence}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="flex items-center gap-2">
+                        <span className="text-2xl">😰</span>
+                        <span className="font-semibold">Nervousness</span>
+                      </span>
+                      <span className="font-bold text-orange-400">{metrics.nervousness.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-700 rounded-full h-3">
+                      <div
+                        className="h-3 rounded-full transition-all duration-500 bg-gradient-to-r from-orange-400 to-red-500"
+                        style={{ width: `${metrics.nervousness}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8">
+                  <Activity className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Start webcam to see metrics</p>
+                </div>
+              )}
+            </div>
+
+            <div className="bg-black/40 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
               <h3 className="text-xl font-semibold mb-4">Emotion Scores</h3>
               
-              {emotionData && emotionData.emotions ? (
+              {displayData && displayData.emotions ? (
                 <div className="space-y-3">
-                  {Object.entries(emotionData.emotions)
+                  {Object.entries(displayData.emotions)
                     .sort(([, a], [, b]) => b - a)
                     .map(([emotion, score]) => (
                       <div key={emotion}>
@@ -385,13 +481,15 @@ export default function EmotionDetectionApp() {
         </div>
 
         <div className="mt-8 bg-black/20 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h3 className="font-semibold mb-3">Instructions:</h3>
+          <h3 className="font-semibold mb-3">How It Works:</h3>
           <ul className="list-disc list-inside space-y-2 text-gray-300 text-sm">
-            <li>Make sure Flask backend is running: <code className="bg-black/40 px-2 py-1 rounded">python app.py</code></li>
-            <li>Click "Start Webcam" and allow camera permissions</li>
-            <li>Face the camera directly for best results</li>
-            <li>Emotions are analyzed every 1.5 seconds</li>
-            <li>Watch the debug messages for status updates</li>
+            <li><strong>Start Detection:</strong> Click "Start Detection" button and allow camera permissions</li>
+            <li><strong>Real-time Analysis:</strong> Emotions detected continuously with 5-frame averaging for stability</li>
+            <li><strong>Live Updates:</strong> Smoothed emotion display reduces jitter and improves accuracy</li>
+            <li><strong>Best Results:</strong> Face the camera directly with good lighting</li>
+            <li><strong>Performance:</strong> Analysis runs 2 times per second for optimal accuracy</li>
+            <li><strong>Confidence & Nervousness:</strong> Real-time metrics calculated from your emotional state</li>
+            <li><strong>Multiple Emotions:</strong> The system detects 7 emotions: happy, sad, angry, surprise, fear, disgust, and neutral</li>
           </ul>
         </div>
       </div>
