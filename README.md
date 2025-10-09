@@ -20,23 +20,24 @@ Make sure you have the following installed before running the project:
 ### Backend Setup
 1. Open a terminal in the project root directory.  
 2. Navigate to the backend folder:
-
+   ```
    cd backend
+   ```
 
 3. Install required Python dependencies:
 
-   pip install -r requirements.txt
+   ```pip install -r requirements.txt```
  
 
 ### Frontend Setup
 1. Open a new terminal window (keep the backend terminal running).  
 2. Navigate to the frontend folder:
   
-   cd frontend
+   ```cd frontend```
   
 3. Install necessary Node.js packages:
 
-   npm install
+   ```npm install```
 
 
 ---
@@ -46,7 +47,7 @@ Make sure you have the following installed before running the project:
 ### Run the Backend
 1. In the backend terminal, run:
 
-   python app.py
+   ```python app.py```
 
 2. Wait for the backend server to fully load (you should see a message like “Running on http://127.0.0.1:5000/”).
 
@@ -54,11 +55,11 @@ Make sure you have the following installed before running the project:
 1. Open a **new terminal** window.  
 2. Navigate to the frontend directory:
 
-   cd frontend
+   ```cd frontend```
 
 3. Start the frontend application:
 
-   npm start
+   ```npm start```
 
 4. The frontend should automatically open in your default browser (usually at [http://localhost:3000](http://localhost:3000)).
 
@@ -69,8 +70,10 @@ Make sure you have the following installed before running the project:
 - Make sure both the backend and frontend are running simultaneously.  
 - If you encounter issues with dependencies, try reinstalling them using:
 
-  pip install --upgrade -r requirements.txt
-  npm install
+  ```pip install --upgrade -r requirements.txt```
+  ```npm install```
+
+---
 - For troubleshooting, check the console output in both terminals for error messages.
 
 ---
