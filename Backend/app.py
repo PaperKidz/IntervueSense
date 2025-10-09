@@ -45,9 +45,6 @@ def health_check():
 
 @app.route('/api/analyze-emotion', methods=['POST', 'OPTIONS'])
 def analyze_emotion():
-    """
-    Analyze emotion from uploaded image
-    """
     if request.method == 'OPTIONS':
         return '', 200
     
