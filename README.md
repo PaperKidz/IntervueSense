@@ -1,9 +1,9 @@
-#🚀 VirtueSense: AI-Powered Interview Practice Platform
+# 🚀 VirtueSense: AI-Powered Interview Practice Platform
 
 This guide will help you set up and run the full VirtueSense application, including the frontend, backend, and Nginx reverse proxy.
 
 ------------------------------------------------------------
-#📦 Prerequisites
+# 📦 Prerequisites
 ------------------------------------------------------------
 
 Make sure you have the following installed on your system:
@@ -28,7 +28,7 @@ Linux (Debian/Ubuntu):
 ```sudo apt update && sudo apt install nginx```
 
 ------------------------------------------------------------
-#🛠️ Step 1: Project Setup & Configuration
+# 🛠️ Step 1: Project Setup & Configuration
 ------------------------------------------------------------
 
 1. Clone the Repository  
@@ -62,7 +62,7 @@ Find the Nginx installation directory on your system (e.g., C:\nginx\conf on Win
 Replace the default nginx.conf file in that directory with the one from this project.
 
 ------------------------------------------------------------
-#⚙️ Step 2: Install Dependencies
+# ⚙️ Step 2: Install Dependencies
 ------------------------------------------------------------
 
 Backend Setup  
@@ -88,7 +88,7 @@ Install the necessary Node.js packages
 ```npm install```
 
 ------------------------------------------------------------
-#▶️ Step 3: Run the Application
+# ▶️ Step 3: Run the Application
 ------------------------------------------------------------
 
 To run the application, you need to have three separate terminal windows open.
