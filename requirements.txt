@@ -1,0 +1,10 @@
+Flask
+Flask-Cors
+opencv-python
+deepface
+numpy
+Pillow
+pydub
+SpeechRecognition
+openai
+python-dotenv
