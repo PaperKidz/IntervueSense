@@ -1,83 +1,120 @@
-# 🚀 Project Setup and Run Guide
+# 🚀 VirtueSense: AI-Powered Interview Practice Platform
 
-This guide will help you install dependencies and run both the **backend** and **frontend** of the project smoothly.
+# This guide will help you set up and run the full VirtueSense application, including the frontend, backend, and Nginx reverse proxy.
 
----
+# ------------------------------------------------------------
+# 📦 Prerequisites
+# ------------------------------------------------------------
 
-## 📦 Prerequisites
+# Make sure you have the following installed on your system:
 
-Make sure you have the following installed before running the project:
+# - Python (3.8 or newer)
+# - Node.js (v14 or newer) & npm
+# - Git
+# - FFmpeg: Required for audio processing. Must be installed and accessible in your system's PATH.
 
-- **Python 3.8+**
-- **Node.js** (v14 or above)
-- **npm** (comes with Node.js)
-- **pip** (Python package manager)
+# Windows: Download from https://ffmpeg.org/download.html and add the bin folder to your system PATH
+# macOS:
+brew install ffmpeg
+# Linux (Debian/Ubuntu):
+sudo apt update && sudo apt install ffmpeg
 
----
+# - Nginx: The web server used to route requests to the frontend and backend.
 
-## 🛠️ Step 1: Install Dependencies
-
-### Backend Setup
-1. Open a terminal in the project root directory.  
-2. Navigate to the backend folder:
-   ```
-   cd backend
-   ```
-
-3. Install required Python dependencies:
-
-   ```pip install -r requirements.txt```
- 
-
-### Frontend Setup
-1. Open a new terminal window (keep the backend terminal running).  
-2. Navigate to the frontend folder:
-  
-   ```cd frontend```
-  
-3. Install necessary Node.js packages:
-
-   ```npm install```
+# Windows: Download from https://nginx.org/en/download.html and extract (e.g., to C:\nginx)
+# macOS:
+brew install nginx
+# Linux (Debian/Ubuntu):
+sudo apt update && sudo apt install nginx
 
 
----
+# ------------------------------------------------------------
+# 🛠️ Step 1: Project Setup & Configuration
+# ------------------------------------------------------------
 
-## ▶️ Step 2: Run the Project
+# 1. Clone the Repository
+git clone https://github.com/PaperKidz/IntervueSense.git
+cd IntervueSense
 
-### Run the Backend
-1. In the backend terminal, run:
 
-   ```python app.py```
+# 2. Configure Environment Variables
 
-2. Wait for the backend server to fully load (you should see a message like “Running on http://127.0.0.1:5000/”).
+# Navigate to the Backend directory
+cd Backend
 
-### Run the Frontend
-1. Open a **new terminal** window.  
-2. Navigate to the frontend directory:
+# Create a copy of the example environment file
+# For Windows
+copy .env.example .env
 
-   ```cd frontend```
+# For macOS/Linux
+cp .env.example .env
 
-3. Start the frontend application:
+# Open the newly created .env file and add your OpenAI API key:
+# OPENAI_API_KEY="sk-YourSecretKeyHere"
 
-   ```npm start```
+# Return to the root directory
+cd ..
 
-4. The frontend should automatically open in your default browser (usually at [http://localhost:3000](http://localhost:3000)).
 
----
+# 3. Configure Nginx
 
-## ⚙️ Notes
+# The Nginx reverse proxy directs browser requests to the correct service (React frontend or Flask backend).
 
-- Make sure both the backend and frontend are running simultaneously.  
-- If you encounter issues with dependencies, try reinstalling them using:
+# Locate the nginx.conf file in the root of this repository.
+# Find the Nginx installation directory on your system (e.g., C:\nginx\conf on Windows).
+# Replace the default nginx.conf file in that directory with the one from this project.
 
-  ```pip install --upgrade -r requirements.txt```
-  ```npm install```
 
----
-- For troubleshooting, check the console output in both terminals for error messages.
+# ------------------------------------------------------------
+# ⚙️ Step 2: Install Dependencies
+# ------------------------------------------------------------
 
----
+# Backend Setup
+cd Backend
 
-## ✅ You’re All Set!
+# Create and activate a Python virtual environment
+python -m venv venv
 
-Once both servers are running, your project should be live and ready to use. 🎉
+# Activate it (Windows)
+.\venv\Scripts\activate
+
+# Activate it (macOS/Linux)
+source venv/bin/activate
+
+# Install the required Python dependencies
+pip install -r requirements.txt
+
+# Frontend Setup
+# Open a new, separate terminal in the project's root directory
+cd ../Frontend
+
+# Install the necessary Node.js packages
+npm install
+
+
+# ------------------------------------------------------------
+# ▶️ Step 3: Run the Application
+# ------------------------------------------------------------
+
+# To run the application, you need to have three separate terminal windows open.
+
+# 1️⃣ Start the Backend Server
+# (First terminal, with the Python virtual environment activated)
+cd Backend
+python app.py
+# Wait for the server to start — it should be listening on port 5000.
+
+# 2️⃣ Start the Frontend Server
+# (Second terminal)
+cd Frontend
+npm start
+# This will start the React development server on port 3000.
+# Do NOT open this URL directly.
+
+# 3️⃣ Start the Nginx Server
+# (Third terminal)
+# On Windows:
+cd C:\nginx
+start nginx
+
+# Nginx will now be running in the background, serving your application.
