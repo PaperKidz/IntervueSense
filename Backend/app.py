@@ -216,7 +216,7 @@ Respond in the following JSON format:
 
 if __name__ == '__main__':
     print("=" * 60)
-    print("🚀 VirtueSense API Server")
+    print("VirtueSense API Server")
     print("=" * 60)
     print("Server: http://localhost:5000")
     print("FFmpeg: " + AudioSegment.converter)
