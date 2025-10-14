@@ -1,115 +1,182 @@
 # 🚀 VirtueSense: AI-Powered Interview Practice Platform
 
-This guide will help you set up and run the full VirtueSense application, including the frontend, backend, and Nginx reverse proxy.
+VirtueSense is an intelligent interview simulation platform that analyzes **facial expressions**, **voice tone**, and **speech clarity** to help users improve communication skills and confidence in interviews.  
+It combines **Flask**, **React**, **OpenAI**, and **DeepFace** to deliver real-time emotional and linguistic feedback.
 
-------------------------------------------------------------
-# 📦 Prerequisites
-------------------------------------------------------------
+---
 
-Make sure you have the following installed on your system:
+## 🧠 Features
 
-- Python (3.8 or newer)
-- Node.js (v14 or newer) & npm
-- Git
-- FFmpeg: Required for audio processing. Must be installed and accessible in your system's PATH.
+- 🎤 Real-time **speech-to-text** analysis using SpeechRecognition and OpenAI  
+- 😊 **Emotion & facial expression** detection with DeepFace and OpenCV  
+- 🧩 Seamless **Flask + React integration** via Nginx reverse proxy  
+- 🔊 Supports **audio-based feedback** and **text-based evaluation**  
+- 📊 Provides structured insights into clarity, tone, and confidence  
 
-Windows: Download from https://ffmpeg.org/download.html and add the bin folder to your system PATH  
-macOS:
-```brew install ffmpeg```  
-Linux (Debian/Ubuntu):
-```sudo apt update && sudo apt install ffmpeg```
+---
 
-- Nginx: The web server used to route requests to the frontend and backend.
+## 📦 Prerequisites
 
-Windows: Download from https://nginx.org/en/download.html and extract (e.g., to C:\nginx)  
-macOS:
-```brew install nginx```  
-Linux (Debian/Ubuntu):
-```sudo apt update && sudo apt install nginx```
+Before starting, make sure you have these installed:
 
-------------------------------------------------------------
-# 🛠️ Step 1: Project Setup & Configuration
-------------------------------------------------------------
+| Dependency | Minimum Version | Purpose |
+|-------------|----------------|----------|
+| **Python** | 3.8+ | Backend (Flask) |
+| **Node.js** | 14+ | Frontend (React) |
+| **Git** | — | Clone repository |
+| **FFmpeg** | Latest | Audio conversion & processing |
+| **Nginx** | Latest | Reverse proxy & routing |
 
-1. Clone the Repository  
-```git clone https://github.com/PaperKidz/IntervueSense.git```  
-```cd IntervueSense```
+### 🔧 FFmpeg Installation
 
-2. Configure Environment Variables  
+- **Windows:** [Download](https://ffmpeg.org/download.html) → Add `bin` folder to PATH  
+- **macOS:** `brew install ffmpeg`  
+- **Linux (Debian/Ubuntu):**
+  ```bash
+  sudo apt update && sudo apt install ffmpeg
+🌐 Nginx Installation
+Windows: Download Nginx → extract to C:\nginx
 
-Navigate to the Backend directory  
-```cd Backend```
+macOS: brew install nginx
 
-Create a copy of the example environment file  
-For Windows  
-```copy .env.example .env```  
+Linux:
 
-For macOS/Linux  
-```cp .env.example .env```
+bash
+Copy code
+sudo apt update && sudo apt install nginx
+🛠️ Step 1: Project Setup
+Clone the Repository
+bash
+Copy code
+git clone https://github.com/PaperKidz/IntervueSense.git
+cd IntervueSense
+Configure Environment Variables
+Navigate to the backend folder:
 
-Open the newly created .env file and add your OpenAI API key:  
-OPENAI_API_KEY="sk-YourSecretKeyHere"
+bash
+Copy code
+cd Backend
+Copy the example environment file:
 
-Return to the root directory  
-```cd ..```
+Windows: copy .env.example .env
 
-3. Configure Nginx  
+macOS/Linux: cp .env.example .env
 
-The Nginx reverse proxy directs browser requests to the correct service (React frontend or Flask backend).  
+Edit .env and add your OpenAI API key:
 
-Locate the nginx.conf file in the root of this repository.  
-Find the Nginx installation directory on your system (e.g., C:\nginx\conf on Windows).  
-Replace the default nginx.conf file in that directory with the one from this project.
+bash
+Copy code
+OPENAI_API_KEY="sk-your-secret-key"
+Return to the root folder:
 
-------------------------------------------------------------
-# ⚙️ Step 2: Install Dependencies
-------------------------------------------------------------
+bash
+Copy code
+cd ..
+⚙️ Step 2: Install Dependencies
+Backend Setup
+bash
+Copy code
+cd Backend
+python -m venv venv
 
-Backend Setup  
-```cd Backend```
+# Activate virtual environment
+# Windows:
+.\venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
 
-Create and activate a Python virtual environment  
-```python -m venv venv```
+# Install required packages
+pip install -r requirements.txt
+Frontend Setup
+bash
+Copy code
+cd ../Frontend
+npm install
+🌍 Step 3: Configure Nginx
+The provided nginx.conf routes frontend and backend traffic automatically.
 
-Activate it (Windows)  
-```.\venv\Scripts\activate```
+Locate the nginx.conf file in the project root.
 
-Activate it (macOS/Linux)  
-```source venv/bin/activate```
+Copy it to your Nginx configuration directory:
 
-Install the required Python dependencies  
-```pip install -r requirements.txt```
+Windows: C:\nginx\conf\nginx.conf
 
-Frontend Setup  
-Open a new, separate terminal in the project's root directory  
-```cd ../Frontend```
+macOS/Linux: /etc/nginx/nginx.conf
 
-Install the necessary Node.js packages  
-```npm install```
+Replace the default Nginx config file with this one.
 
-------------------------------------------------------------
-# ▶️ Step 3: Run the Application
-------------------------------------------------------------
+▶️ Step 4: Run the Application
+Once setup is complete, you can start everything through Nginx.
 
-To run the application, you need to have three separate terminal windows open.
+Start Nginx
 
-1️⃣ Start the Backend Server  
-(First terminal, with the Python virtual environment activated)  
-```cd Backend```  
-```python app.py```  
-Wait for the server to start — it should be listening on port 5000.
+bash
+Copy code
+# Windows
+cd C:\nginx
+start nginx
 
-2️⃣ Start the Frontend Server  
-(Second terminal)  
-```cd Frontend```  
-```npm start```  
-This will start the React development server on port 3000.  
-Do NOT open this URL directly.
+# macOS/Linux
+sudo nginx
+Run the Frontend and Backend Together
 
-3️⃣ Start the Nginx Server  
-(Third terminal)  
-On Windows:  
-```cd C:\nginx```  
-```start nginx```
+bash
+Copy code
+cd Frontend
+npm run dev
+Open your browser and go to:
 
-Nginx will now be running in the background, serving your application.
+arduino
+Copy code
+http://localhost
+Nginx will automatically route:
+
+/api → Flask backend (port 5000)
+
+/ → React frontend (port 3000)
+
+🧩 Project Structure
+css
+Copy code
+IntervueSense/
+├── Backend/
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── .env.example
+│   └── ...
+├── Frontend/
+│   ├── src/
+│   ├── package.json
+│   └── ...
+├── nginx.conf
+└── README.md
+🧠 Tech Stack
+Frontend: React, TailwindCSS
+
+Backend: Flask, DeepFace, OpenCV, OpenAI API
+
+Speech Processing: SpeechRecognition, Pydub, FFmpeg
+
+Reverse Proxy: Nginx
+
+🔌 API Endpoints
+Endpoint	Method	Description
+/analyze_face	POST	Analyzes facial emotion from base64 or uploaded image
+/analyze_audio	POST	Processes audio input for tone and emotion
+/transcribe	POST	Converts user audio speech to text
+/feedback	POST	Generates AI-driven feedback based on performance
+
+Example cURL:
+
+bash
+Copy code
+curl -X POST http://localhost/api/analyze_face \
+-H "Content-Type: application/json" \
+-d '{"image": "data:image/jpeg;base64,..."}'
+💡 Future Enhancements
+Integrate gesture detection
+
+Add live confidence scoring
+
+Provide personalized coaching feedback
+
