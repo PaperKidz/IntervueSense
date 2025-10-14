@@ -145,11 +145,3 @@ Example cURL:
 ``-H "Content-Type: application/json" \``
 ``-d '{"image": "data:image/jpeg;base64,..."}'``
 
----
-💡 Future Enhancements
-Integrate gesture detection
-
-Add live confidence scoring
-
-Provide personalized coaching feedback
-
