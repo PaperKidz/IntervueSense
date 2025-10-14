@@ -63,6 +63,7 @@ Edit .env and add your OpenAI API key:
 
 
 `OPENAI_API_KEY="sk-your-secret-key"`
+
 Return to the root folder:
 ``cd ..``
 
