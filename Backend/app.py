@@ -14,6 +14,8 @@ import tempfile
 from pydub import AudioSegment
 from openai import OpenAI
 from dotenv import load_dotenv
+import sys
+import os
 load_dotenv()
 
 app = Flask(__name__)
@@ -22,6 +24,20 @@ CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+
+from audio_processing.pitch_analyzer import analyze_pitch
+from audio_processing.energy_analyzer import analyze_energy
+from audio_processing.voice_break_detector import detect_voice_breaks
+from audio_processing.speech_rate_analyzer import analyze_speech_rate
+
+from text_processing.filler_word_detector import detect_filler_words
+from text_processing.stammering_detector import detect_stammering
+from text_processing.pause_analyzer import analyze_pauses
+
+from scoring.confidence_scorer import calculate_confidence_score
+from scoring.nervousness_scorer import calculate_nervousness_score
 # Initialize OpenAI client
 
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
@@ -170,12 +186,12 @@ Context: {description}
 Candidate's Answer: {answer}
 
 Please evaluate this answer and provide:
-1. An overall score from 1-10
+1. An overall score from 1-10(be generous - 7-8 for good answers, 9-10 for excellent/outstanding)
 2. A clarity score from 1-10 (how well-structured and understandable the answer is)
 3. A relevance score from 1-10 (how well it addresses the question)
-4. Key strengths of the answer (2-3 sentences)
-5. Areas for improvement (2-3 sentences)
-6. Overall feedback (2-3 sentences) 
+4. Key strengths of the answer (2-3 sentences,be specific and encouraging)
+5. Areas for improvement (2-3 sentences,be constructive)
+6. Overall feedback (2-3 sentences,balanced and motivating) 
 
 Respond in the following JSON format:
 {{
@@ -213,6 +229,134 @@ Respond in the following JSON format:
         logger.error(f"❌ Evaluation error: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"success": False, "error": f"Evaluation error: {str(e)}"}), 500
+    
+
+@app.route('/api/analyze-voice-comprehensive', methods=['POST'])
+def analyze_voice_comprehensive():
+    """
+    Performs comprehensive voice analysis: DSP + Text hybrid approach.
+    
+    Expected input:
+    {
+        "audio": "base64 encoded audio",
+        "transcript": "text from speech-to-text",
+        "duration": 8.5  // audio duration in seconds
+    }
+    """
+    try:
+        logger.info("🎤 Received comprehensive voice analysis request")
+        data = request.get_json()
+        
+        if not data or 'audio' not in data or 'transcript' not in data:
+            return jsonify({
+                "success": False,
+                "error": "Missing audio or transcript"
+            }), 400
+        
+        # Decode audio
+        audio_data = data['audio'].split('base64,')[1]
+        audio_bytes = base64.b64decode(audio_data)
+        transcript = data['transcript']
+        duration = data.get('duration', 0)
+        
+        # Save audio temporarily
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.webm') as webm_file:
+            webm_file.write(audio_bytes)
+            webm_path = webm_file.name
+        
+        # Convert to WAV
+        wav_path = webm_path.replace('.webm', '.wav')
+        
+        try:
+            # Convert using FFmpeg
+            import subprocess
+            subprocess.run([
+                r"C:\ffmpeg\bin\ffmpeg.exe",  # Update this path if different
+                "-i", webm_path,
+                "-acodec", "pcm_s16le",
+                "-ar", "16000",
+                "-ac", "1",
+                wav_path,
+                "-y"
+            ], check=True, capture_output=True)
+            
+            # === PART 1: DSP ANALYSIS (Audio) ===
+            logger.info("📊 Running DSP analysis...")
+            
+            pitch_results = analyze_pitch(wav_path)
+            energy_results = analyze_energy(wav_path)
+            voice_break_results = detect_voice_breaks(wav_path)
+            speech_rate_results = analyze_speech_rate(wav_path)
+            
+            dsp_results = {
+                'pitch': pitch_results,
+                'energy': energy_results,
+                'voice_breaks': voice_break_results,
+                'speech_rate': speech_rate_results
+            }
+            
+            # === PART 2: TEXT ANALYSIS (Transcript) ===
+            logger.info("📝 Running text analysis...")
+            
+            filler_results = detect_filler_words(transcript)
+            stammer_results = detect_stammering(transcript)
+            pause_results = analyze_pauses(transcript, duration)
+            
+            text_results = {
+                'filler_words': filler_results,
+                'stammering': stammer_results,
+                'pauses': pause_results
+            }
+            
+            # === PART 3: HYBRID SCORING ===
+            logger.info("🎯 Calculating hybrid scores...")
+            
+            confidence_score = calculate_confidence_score(dsp_results, text_results)
+            nervousness_score = calculate_nervousness_score(dsp_results, text_results)
+            
+            # Calculate fluency score (inverse of nervousness + penalties)
+            fluency_base = 100 - nervousness_score
+            fluency_penalty = (
+                filler_results['confidence_penalty'] * 0.3 +
+                stammer_results['fluency_penalty'] * 0.5
+            )
+            fluency_score = max(0, fluency_base - fluency_penalty)
+            
+            # === RESPONSE ===
+            response = {
+                "success": True,
+                "scores": {
+                    "confidence": round(confidence_score, 2),
+                    "nervousness": round(nervousness_score, 2),
+                    "fluency": round(fluency_score, 2)
+                },
+                "dsp_analysis": dsp_results,
+                "text_analysis": text_results,
+                "summary": {
+                    "words_per_minute": speech_rate_results['words_per_minute'],
+                    "filler_count": filler_results['filler_count'],
+                    "stammer_count": stammer_results['stammer_count'],
+                    "voice_breaks": voice_break_results['total_breaks']
+                }
+            }
+            
+            logger.info(f"✅ Analysis complete - Confidence: {confidence_score}, Nervousness: {nervousness_score}")
+            return jsonify(response)
+            
+        finally:
+            # Clean up temp files
+            if os.path.exists(webm_path):
+                os.unlink(webm_path)
+            if os.path.exists(wav_path):
+                os.unlink(wav_path)
+    
+    except Exception as e:
+        logger.error(f"❌ Voice analysis error: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({
+            "success": False,
+            "error": f"Analysis error: {str(e)}"
+        }), 500
 
 if __name__ == '__main__':
     print("=" * 60)
