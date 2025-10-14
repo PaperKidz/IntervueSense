@@ -133,7 +133,7 @@ sudo nginx
 
 ```bash
 cd Frontend
-npm run dev-full
+npm run dev
 ```
 
 This will run:
