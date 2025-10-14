@@ -105,8 +105,8 @@ Start Nginx
 
 # macOS/Linux
 ``sudo nginx``
-Run the Frontend and Backend Together
 
+Run the Frontend and Backend Together
 ``cd Frontend``
 ``npm run dev``
 Open your browser and go to:
