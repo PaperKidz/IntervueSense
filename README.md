@@ -93,6 +93,7 @@ Windows: ``C:\nginx\conf\nginx.conf``
 macOS/Linux: ``/etc/nginx/nginx.conf``
 
 Replace the default Nginx config file with this one.
+---
 
 ▶️ Step 4: Run the Application
 Once setup is complete, you can start everything through Nginx.
@@ -106,14 +107,16 @@ Start Nginx
 # macOS/Linux
 ``sudo nginx``
 
-Run the Frontend and Backend Together
+# Run the Frontend and Backend Together
 ``cd Frontend``
 ``npm run dev``
-Open your browser and go to:
+
+# Open your browser and go to:
 ``http://localhost``
 
+---
 
-🧠 Tech Stack
+# 🧠 Tech Stack
 Frontend: React, TailwindCSS
 
 Backend: Flask, DeepFace, OpenCV, OpenAI API
@@ -121,8 +124,9 @@ Backend: Flask, DeepFace, OpenCV, OpenAI API
 Speech Processing: SpeechRecognition, Pydub, FFmpeg
 
 Reverse Proxy: Nginx
+---
 
-🔌 API Endpoints
+# 🔌 API Endpoints
 Endpoint	Method	Description
 /analyze_face	POST	Analyzes facial emotion from base64 or uploaded image
 /analyze_audio	POST	Processes audio input for tone and emotion
