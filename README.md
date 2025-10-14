@@ -32,30 +32,22 @@ Before starting, make sure you have these installed:
 - **Windows:** [Download](https://ffmpeg.org/download.html) → Add `bin` folder to PATH  
 - **macOS:** `brew install ffmpeg`  
 - **Linux (Debian/Ubuntu):**
-  ```bash
-  sudo apt update && sudo apt install ffmpeg
+  ```sudo apt update && sudo apt install ffmpeg```
 🌐 Nginx Installation
 Windows: Download Nginx → extract to C:\nginx
 
-macOS: brew install nginx
+macOS: ` install nginx`
 
 Linux:
-
-bash
-Copy code
-sudo apt update && sudo apt install nginx
+`sudo apt update && sudo apt install nginx`
 🛠️ Step 1: Project Setup
 Clone the Repository
-bash
-Copy code
-git clone https://github.com/PaperKidz/IntervueSense.git
-cd IntervueSense
-Configure Environment Variables
+`git clone https://github.com/PaperKidz/IntervueSense.git`
+`cd IntervueSense`
+`Configure Environment Variables
 Navigate to the backend folder:
 
-bash
-Copy code
-cd Backend
+`cd Backend`
 Copy the example environment file:
 
 Windows: copy .env.example .env
@@ -64,34 +56,31 @@ macOS/Linux: cp .env.example .env
 
 Edit .env and add your OpenAI API key:
 
-bash
-Copy code
-OPENAI_API_KEY="sk-your-secret-key"
-Return to the root folder:
 
-bash
-Copy code
-cd ..
+`OPENAI_API_KEY="sk-your-secret-key"`
+Return to the root folder:
+``cd ..``
+
+---
 ⚙️ Step 2: Install Dependencies
 Backend Setup
-bash
-Copy code
-cd Backend
-python -m venv venv
+``cd Backend``
+``python -m venv venv``
 
 # Activate virtual environment
 # Windows:
-.\venv\Scripts\activate
+``.\venv\Scripts\activate``
 # macOS/Linux:
-source venv/bin/activate
+``source venv/bin/activate``
 
 # Install required packages
-pip install -r requirements.txt
+``pip install -r requirements.txt``
 Frontend Setup
-bash
-Copy code
-cd ../Frontend
-npm install
+
+``cd ../Frontend``
+``npm install``
+
+---
 🌍 Step 3: Configure Nginx
 The provided nginx.conf routes frontend and backend traffic automatically.
 
@@ -99,9 +88,9 @@ Locate the nginx.conf file in the project root.
 
 Copy it to your Nginx configuration directory:
 
-Windows: C:\nginx\conf\nginx.conf
+Windows: ``C:\nginx\conf\nginx.conf``
 
-macOS/Linux: /etc/nginx/nginx.conf
+macOS/Linux: ``/etc/nginx/nginx.conf``
 
 Replace the default Nginx config file with this one.
 
@@ -110,46 +99,20 @@ Once setup is complete, you can start everything through Nginx.
 
 Start Nginx
 
-bash
-Copy code
 # Windows
-cd C:\nginx
-start nginx
+``cd C:\nginx``
+``start nginx``
 
 # macOS/Linux
-sudo nginx
+``sudo nginx``
 Run the Frontend and Backend Together
 
-bash
-Copy code
-cd Frontend
-npm run dev
+``cd Frontend``
+``npm run dev``
 Open your browser and go to:
+``http://localhost``
 
-arduino
-Copy code
-http://localhost
-Nginx will automatically route:
 
-/api → Flask backend (port 5000)
-
-/ → React frontend (port 3000)
-
-🧩 Project Structure
-css
-Copy code
-IntervueSense/
-├── Backend/
-│   ├── app.py
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── ...
-├── Frontend/
-│   ├── src/
-│   ├── package.json
-│   └── ...
-├── nginx.conf
-└── README.md
 🧠 Tech Stack
 Frontend: React, TailwindCSS
 
@@ -168,11 +131,11 @@ Endpoint	Method	Description
 
 Example cURL:
 
-bash
-Copy code
-curl -X POST http://localhost/api/analyze_face \
--H "Content-Type: application/json" \
--d '{"image": "data:image/jpeg;base64,..."}'
+``curl -X POST http://localhost/api/analyze_face \``
+``-H "Content-Type: application/json" \``
+``-d '{"image": "data:image/jpeg;base64,..."}'``
+
+---
 💡 Future Enhancements
 Integrate gesture detection
 
