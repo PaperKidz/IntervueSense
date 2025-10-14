@@ -36,18 +36,23 @@ Before starting, make sure you have these installed:
 🌐 Nginx Installation
 Windows: Download Nginx → extract to C:\nginx
 
-macOS: ` install nginx`
+macOS: `install nginx`
 
 Linux:
 `sudo apt update && sudo apt install nginx`
-🛠️ Step 1: Project Setup
+
+#🛠️ Step 1: Project Setup
+
 Clone the Repository
 `git clone https://github.com/PaperKidz/IntervueSense.git`
 `cd IntervueSense`
-`Configure Environment Variables
+
+Configure Environment Variables
+
 Navigate to the backend folder:
 
 `cd Backend`
+
 Copy the example environment file:
 
 Windows: copy .env.example .env
@@ -62,7 +67,7 @@ Return to the root folder:
 ``cd ..``
 
 ---
-⚙️ Step 2: Install Dependencies
+# ⚙️ Step 2: Install Dependencies
 Backend Setup
 ``cd Backend``
 ``python -m venv venv``
@@ -81,7 +86,7 @@ Frontend Setup
 ``npm install``
 
 ---
-🌍 Step 3: Configure Nginx
+# 🌍 Step 3: Configure Nginx
 The provided nginx.conf routes frontend and backend traffic automatically.
 
 Locate the nginx.conf file in the project root.
@@ -95,7 +100,7 @@ macOS/Linux: ``/etc/nginx/nginx.conf``
 Replace the default Nginx config file with this one.
 ---
 
-▶️ Step 4: Run the Application
+# ▶️ Step 4: Run the Application
 Once setup is complete, you can start everything through Nginx.
 
 Start Nginx
