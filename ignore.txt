@@ -1,0 +1,331 @@
+Users Table:
+- user_id (PK)
+- email
+- password_hash
+- full_name
+- profile_picture
+- subscription_tier
+- created_at
+- last_login
+```
+
+---
+
+### **3. Onboarding Wizard** 
+**(This is a multi-step guided tour for new users)**
+
+**Purpose:** Collect user info and set goals
+
+**Steps (3-5 screens):**
+1. **Welcome Screen:** "Tell us about yourself"
+   - Name, Current role/Student
+   - Industry/Field of interest
+   
+2. **Goal Setting:** "What's your interview goal?"
+   - Job role targeting (Software Engineer, Marketing, etc.)
+   - Experience level (Entry, Mid, Senior)
+   - Timeline (Interviewing in 1 week, 1 month, etc.)
+
+3. **Skill Assessment:** "Quick baseline test"
+   - 2-3 simple questions to gauge current level
+   - Used to personalize learning path
+
+4. **Preferences:** "Customize your experience"
+   - Notification settings
+   - Practice frequency (Daily, 3x/week, etc.)
+
+5. **Done:** "You're all set!"
+   - Show recommended learning path
+   - CTA → "Start Learning"
+
+**Why it matters:** Personalizes the experience, increases engagement
+
+---
+
+### **4. Candidate Dashboard (Main Hub)**
+
+**Layout:**
+```
+┌─────────────────────────────────────┐
+│  Sidebar Navigation                 │
+│  ├── Dashboard (Home)               │
+│  ├── Learning Modules               │
+│  ├── Mock Interviews                │
+│  ├── Reports & Analytics            │
+│  └── Profile & Settings             │
+└─────────────────────────────────────┘
+│                                     │
+│  Main Content Area                  │
+│  (Changes based on selection)       │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+**Dashboard Home (Overview):**
+- Welcome message with user's name
+- Progress overview (modules completed, interviews done)
+- Upcoming scheduled mock interviews
+- Quick stats cards (Avg score, Total practice time, Improvement %)
+- "Continue Learning" button for last module
+- Recent activity feed
+
+---
+
+### **5. Learning Modules System**
+
+**Structure:**
+```
+Learning Modules
+├── Module 1: Introduction to Interviews
+│   ├── Section 1.1: Tell Me About Yourself
+│   │   ├── Theory Lesson (video/text)
+│   │   ├── Practice Question 1
+│   │   ├── Practice Question 2
+│   │   └── Practice Question 3
+│   ├── Section 1.2: Behavioral Questions
+│   │   ├── Theory Lesson
+│   │   ├── Practice Question 1
+│   │   ├── Practice Question 2
+│   │   └── Quiz
+│   └── Module Quiz
+│
+├── Module 2: Technical Interviews
+│   ├── Section 2.1: Problem Solving
+│   ├── Section 2.2: System Design
+│   └── Module Quiz
+│
+└── Module 3: Advanced Techniques
+    └── ...
+```
+
+**Database Schema:**
+```
+Modules Table:
+- module_id
+- title
+- description
+- order_number
+
+Sections Table:
+- section_id
+- module_id (FK)
+- title
+- order_number
+
+Questions Table:
+- question_id
+- section_id (FK)
+- question_text
+- question_type (text, video, behavioral)
+- difficulty (easy, medium, hard)
+- tips
+- expected_duration
+
+User_Progress Table:
+- user_id (FK)
+- question_id (FK)
+- attempts
+- best_score
+- completed
+- last_attempted
+```
+
+**Module Page Layout:**
+- Progress bar (e.g., "3/12 sections completed")
+- Grid/List of sections
+- Lock icon for incomplete prerequisites
+- "Resume" button for in-progress section
+
+**Section Detail Page:**
+1. **Theory Content:**
+   - Video tutorial OR rich text explanation
+   - Key takeaways in bullet points
+   - Example good/bad answers
+
+2. **Practice Mode:** (Your current app.js interface)
+   - Individual question practice
+   - Same features: video, emotion analysis, transcription
+   - Save attempt to database
+   - Show previous attempts history
+
+3. **Section Quiz:**
+   - Multiple choice questions
+   - Must pass to unlock next section
+
+---
+
+### **6. Mock Interview System**
+
+**Two Modes:**
+
+**A. Quick Practice (Current Implementation)**
+- Single question practice
+- Immediate feedback
+- No time pressure
+
+**B. Full Mock Interview (New)**
+- Simulates real interview (5-10 questions)
+- Timed sections
+- No pause/redo
+- Generates comprehensive report at end
+
+**Mock Interview Flow:**
+```
+1. Setup Screen
+   - Select interview type (Behavioral, Technical, Mix)
+   - Select difficulty
+   - Duration (15min, 30min, 45min)
+   - Start button
+
+2. Preparation Screen
+   - 30-second countdown
+   - Instructions
+   - Camera/mic check
+
+3. Question Sequence
+   - Question appears
+   - Timer starts (2-3 min per question)
+   - Auto-moves to next
+   - Your current interface for each question
+
+4. Completion Screen
+   - "Processing your interview..."
+   - Generating report
+
+5. Session Summary (Detailed Report)
+   - Overall score
+   - Per-question breakdown
+   - Emotion trends graph
+   - Voice analysis summary
+   - Detailed feedback
+   - Download PDF option
+   - Schedule next interview
+```
+
+**Database Schema:**
+```
+Mock_Interviews Table:
+- interview_id
+- user_id (FK)
+- interview_type
+- total_questions
+- overall_score
+- duration
+- started_at
+- completed_at
+
+Interview_Responses Table:
+- response_id
+- interview_id (FK)
+- question_id (FK)
+- transcript
+- video_analysis_json
+- voice_analysis_json
+- ai_score
+- timestamp
+```
+
+---
+
+### **7. Reports & Analytics**
+
+**Dashboard showing:**
+
+**Overview Tab:**
+- Overall performance score (0-100)
+- Improvement graph over time
+- Strengths & Weaknesses radar chart
+- Most practiced question types
+
+**Detailed Analytics:**
+- **Emotion Trends:** How your confidence changed over weeks
+- **Voice Analysis:** Speaking pace improvement, filler word reduction
+- **Content Quality:** Clarity, relevance scores trending
+- **Comparison:** You vs. Average user in your category
+- **Heatmap:** Best/worst performing question types
+
+**Individual Session History:**
+- Searchable/filterable table
+- Click to view full session details
+- Export data to CSV
+
+---
+
+### **8. Profile & Settings**
+
+**Profile Tab:**
+- Edit personal info
+- Upload profile picture
+- Update goals
+- View subscription status
+
+**Settings Tab:**
+- Email notifications
+- Privacy preferences
+- Camera/mic settings test
+- Danger zone (Delete account)
+
+**Subscription Tab:**
+- Current plan details
+- Usage stats (X/Y interviews this month)
+- Upgrade/downgrade options
+- Payment history
+
+---
+
+## **🗂️ File Structure**
+```
+/virtuesense-app
+├── /frontend
+│   ├── /src
+│   │   ├── /components
+│   │   │   ├── /auth
+│   │   │   │   ├── Login.jsx
+│   │   │   │   └── Signup.jsx
+│   │   │   ├── /dashboard
+│   │   │   │   ├── DashboardHome.jsx
+│   │   │   │   ├── Sidebar.jsx
+│   │   │   │   └── StatsCard.jsx
+│   │   │   ├── /learning
+│   │   │   │   ├── ModuleList.jsx
+│   │   │   │   ├── SectionDetail.jsx
+│   │   │   │   └── PracticeQuestion.jsx (your current app)
+│   │   │   ├── /interview
+│   │   │   │   ├── MockInterviewSetup.jsx
+│   │   │   │   ├── InterviewSession.jsx
+│   │   │   │   └── SessionSummary.jsx
+│   │   │   ├── /analytics
+│   │   │   │   └── ReportsPage.jsx
+│   │   │   ├── /common
+│   │   │   │   ├── Navbar.jsx
+│   │   │   │   ├── VideoRecorder.jsx (extract from app)
+│   │   │   │   └── TranscriptDisplay.jsx
+│   │   │   └── /onboarding
+│   │   │       └── OnboardingWizard.jsx
+│   │   ├── /pages
+│   │   │   ├── LandingPage.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   └── ...
+│   │   ├── /context
+│   │   │   └── AuthContext.jsx
+│   │   ├── /utils
+│   │   │   ├── api.js
+│   │   │   └── helpers.js
+│   │   └── App.js (Router setup)
+│   └── package.json
+│
+└── /backend
+    ├── app.py
+    ├── /routes
+    │   ├── auth.py
+    │   ├── modules.py
+    │   ├── interviews.py
+    │   └── analytics.py
+    ├── /models
+    │   ├── user.py
+    │   ├── module.py
+    │   └── interview.py
+    ├── /audio_processing (your existing)
+    ├── /text_processing (your existing)
+    ├── /scoring (your existing)
+    └── requirements.txt
