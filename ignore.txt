@@ -20,7 +20,7 @@ Users Table:
 1. **Welcome Screen:** "Tell us about yourself"
    - Name, Current role/Student
    - Industry/Field of interest
-   
+      
 2. **Goal Setting:** "What's your interview goal?"
    - Job role targeting (Software Engineer, Marketing, etc.)
    - Experience level (Entry, Mid, Senior)
