@@ -1,19 +1,40 @@
-# Environment files
+# ================================
+# ⚙️ Environment files
+# ================================
 .env
 .env.*
 !/.env.example
 
-# Python
-/Backend/venv/
+# ================================
+# 🐍 Python (Flask Backend)
+# ================================
+Backend/venv/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 
-# Node
-/node_modules/
-/Frontend/node_modules/
-/Frontend/build/
+# ================================
+# 🟢 Node.js (Frontend + Backend)
+# ================================
+# Node backend
+backend-nodejs/node_modules/
+backend-nodejs/package-lock.json
+
+# Frontend
+Frontend/node_modules/
+Frontend/build/
+
+# Common
+node_modules/
 npm-debug.log*
 yarn-debug.log*
+pnpm-debug.log*
 
-# Misc
-/logs/
-/temp/
+# ================================
+# 🧰 Misc
+# ================================
+logs/
+temp/
+.DS_Store
+*.log
