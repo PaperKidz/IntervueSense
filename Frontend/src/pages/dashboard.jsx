@@ -1,8 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-// --- Imports for UI components (add these) ---
-// Make sure you've installed these libraries:
-// npm install recharts lucide-react
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
@@ -20,7 +17,7 @@ export default function VirtueSenseDashboard() {
             question: "Tell me about yourself and your background.",
             expectedDuration: 120,
         },
-        // You can add more questions here
+
     ];
 
     const [isSessionActive, setIsSessionActive] = useState(false);
