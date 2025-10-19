@@ -1,9 +1,10 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import Login from './components/Auth/Login'
-import Signup from './components/Auth/Signup'
-import Home from './components/pages/Home'
-import Dashboard from './components/pages/dashboard'
-import ProtectedRoute from './components/ProtectedRoute'
+import { Routes, Route, Navigate } from 'react-router-dom';
+import Login from './components/Auth/Login';
+import Signup from './components/Auth/Signup';
+import ForgotPassword from './components/Auth/ForgotPassword';  // ✅ Import this
+import Home from './components/pages/Home';
+import Dashboard from './components/pages/Dashboard';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -11,30 +12,31 @@ function App() {
       {/* Public Routes */}
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      
-      {/* Protected Routes - Require Authentication */}
-      <Route 
-        path="/" 
+      <Route path="/forgot-password" element={<ForgotPassword />} />  {/* ✅ New Route */}
+
+      {/* Protected Routes */}
+      <Route
+        path="/"
         element={
           <ProtectedRoute>
             <Home />
           </ProtectedRoute>
-        } 
+        }
       />
       
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <Dashboard />
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      {/* 404 - Not Found */}
+
+      {/* 404 - Redirect all unknown routes to login */}
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
-  )
+  );
 }
 
-export default App
+export default App;
