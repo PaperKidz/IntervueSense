@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
+import authService from "../../services/auth.service";
 
 export default function Signup() {
   const [name, setName] = useState('');

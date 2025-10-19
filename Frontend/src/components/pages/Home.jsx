@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import API_CONFIG from "../../config/api.config"; // Adjust path as needed
 
 export function Home() {
   const [user, setUser] = useState(null)
@@ -16,7 +17,7 @@ export function Home() {
       }
 
       try {
-        const response = await axios.get('http://localhost:4000/api/auth/user/profile', {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.PROFILE}`, {
           headers: { Authorization: `Bearer ${token}` }
         })
         if (response.data.success) setUser(response.data.user)

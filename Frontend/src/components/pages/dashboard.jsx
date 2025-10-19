@@ -8,8 +8,8 @@ import {
     Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw
 } from 'lucide-react';
 
+import API_CONFIG from "../../config/api.config";
 export default function VirtueSenseDashboard() {
-    const API_BASE_URL = 'http://localhost:4000/api';
     const interviewQuestions = [
         {
             id: 1,
@@ -207,7 +207,7 @@ export default function VirtueSenseDashboard() {
                 const base64Audio = reader.result;
 
                 try {
-                    const response = await fetch(`${API_BASE_URL}/transcribe-audio`, {
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.TRANSCRIBE_AUDIO}`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ audio: base64Audio }),
@@ -263,7 +263,7 @@ export default function VirtueSenseDashboard() {
         try {
             const estimatedDuration = (audioBlobSize / 1024) * 0.1;
 
-            const response = await fetch(`${API_BASE_URL}/analyze-voice-comprehensive`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_VOICE}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -426,7 +426,7 @@ export default function VirtueSenseDashboard() {
 
             const imageData = canvas.toDataURL('image/jpeg', 0.95);
 
-            const response = await fetch(`${API_BASE_URL}/analyze-emotion`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_EMOTION}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image: imageData }),
@@ -555,7 +555,7 @@ export default function VirtueSenseDashboard() {
         const currentQuestion = interviewQuestions[currentQuestionIndex];
 
         try {
-            const response = await fetch(`${API_BASE_URL}/evaluate-answer`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.EVALUATE_ANSWER}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
