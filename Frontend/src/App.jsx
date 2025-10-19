@@ -3,7 +3,7 @@ import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
 import ForgotPassword from './components/Auth/ForgotPassword';  // ✅ Import this
 import Home from './components/pages/Home';
-import Dashboard from './components/pages/Dashboard';
+import Dashboard from './components/pages/dashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
