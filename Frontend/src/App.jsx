@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
-import {Login} from './components/Auth/Login.jsx'
-import {Signup} from './components/Auth/Signup'
-import {Home} from './components/pages/home.jsx'
+import Login from './components/Auth/Login'
+import Signup from './components/Auth/Signup'
 import Dashboard from './components/pages/dashboard'
 
 function App() {
@@ -11,10 +10,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       
-      {/* Home Page - After Login */}
-      <Route path="/home" element={<Home />} />
-      
-      {/* Protected Route - Interview Dashboard */}
+      {/* Protected Route - Your main emotion detection app */}
       <Route path="/dashboard" element={<Dashboard />} />
       
       {/* Redirect root to login */}
