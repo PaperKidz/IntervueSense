@@ -1,39 +1,77 @@
+// src/components/Auth/Signup.jsx
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import authService from '../../services/auth.service';
 
 export default function Signup() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
+
+    // Basic validation
+    if (!name || !email || !password) {
+      setError('Please fill in all fields');
+      setLoading(false);
+      return;
+    }
+
+    // Name validation
+    if (name.trim().length < 2) {
+      setError('Name must be at least 2 characters long');
+      setLoading(false);
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    // Password validation
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const res = await fetch('http://localhost:4000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password })
-      });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+      const response = await authService.signup(name, email, password);
+
+      if (response.success) {
+        // Redirect to home/dashboard
         navigate('/');
       } else {
-        setError(data.message || 'Something went wrong');
+        setError(response.message || 'Signup failed. Please try again.');
       }
-    } catch (err) {
-      setError('Something went wrong');
+    } catch (error) {
+      // Handle different error types
+      if (error.statusCode === 409) {
+        setError('Email already exists. Please login instead.');
+      } else if (error.statusCode === 400) {
+        setError(error.message || 'Invalid input. Please check your details.');
+      } else if (error.statusCode === 0) {
+        setError('Network error. Please check your internet connection.');
+      } else if (error.statusCode === 408) {
+        setError('Request timeout. Please try again.');
+      } else {
+        setError(error.message || 'An error occurred. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
-
-
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -111,7 +149,8 @@ export default function Signup() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+                  disabled={loading}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{fontFamily: 'Inter, system-ui, sans-serif'}}
                 />
               </div>
@@ -133,7 +172,8 @@ export default function Signup() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+                  disabled={loading}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{fontFamily: 'Inter, system-ui, sans-serif'}}
                 />
               </div>
@@ -155,7 +195,8 @@ export default function Signup() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Create a strong password"
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all"
+                  disabled={loading}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{fontFamily: 'Inter, system-ui, sans-serif'}}
                 />
               </div>
@@ -171,10 +212,21 @@ export default function Signup() {
             {/* Sign Up Button */}
             <button
               onClick={handleSubmit}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              disabled={loading}
+              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
               style={{fontFamily: 'Inter, system-ui, sans-serif'}}
             >
-              Sign Up
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Creating account...
+                </>
+              ) : (
+                'Sign Up'
+              )}
             </button>
 
             {/* Already Have Account */}
@@ -184,7 +236,8 @@ export default function Signup() {
               </span>
               <button
                 onClick={() => navigate('/login')}
-                className="text-blue-700 font-semibold text-sm hover:text-blue-800 hover:underline transition-colors"
+                disabled={loading}
+                className="text-blue-700 font-semibold text-sm hover:text-blue-800 hover:underline transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{fontFamily: 'Inter, system-ui, sans-serif'}}
               >
                 Login
