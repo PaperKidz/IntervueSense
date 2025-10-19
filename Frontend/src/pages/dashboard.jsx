@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
 
+import { useState, useRef, useEffect, useCallback } from 'react';
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
@@ -7,7 +7,6 @@ import {
 import {
     Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw
 } from 'lucide-react';
-
 
 export default function VirtueSenseDashboard() {
     const API_BASE_URL = 'http://localhost:4000/api';
@@ -17,7 +16,6 @@ export default function VirtueSenseDashboard() {
             question: "Tell me about yourself and your background.",
             expectedDuration: 120,
         },
-
     ];
 
     const [isSessionActive, setIsSessionActive] = useState(false);
@@ -52,6 +50,7 @@ export default function VirtueSenseDashboard() {
     const emotionHistoryRef = useRef([]);
     const continuousRecordingRef = useRef(null);
     const recentTranscriptsRef = useRef([]);
+    const analysisIntervalRef = useRef(null);
 
     const emotionColors = {
         happy: '#10B981',
@@ -150,6 +149,9 @@ export default function VirtueSenseDashboard() {
             if (continuousRecordingRef.current?.intervalId) {
                 clearInterval(continuousRecordingRef.current.intervalId);
             }
+            if (analysisIntervalRef.current) {
+                clearInterval(analysisIntervalRef.current);
+            }
             continuousRecordingRef.current = null;
         };
     }, [stopWebcam]);
@@ -194,6 +196,9 @@ export default function VirtueSenseDashboard() {
     };
 
     const transcribeAudio = useCallback(async (audioBlob, chunkId) => {
+        // Only transcribe if session is active
+        if (!isSessionActive) return;
+
         try {
             const reader = new FileReader();
             reader.readAsDataURL(audioBlob);
@@ -249,9 +254,12 @@ export default function VirtueSenseDashboard() {
             console.error('Error processing audio:', err);
             setIsTranscribing(false);
         }
-    }, [isDuplicate]);
+    }, [isDuplicate, isSessionActive]);
 
     const analyzeVoiceChunk = useCallback(async (base64Audio, transcript, audioBlobSize) => {
+        // Only analyze if session is active
+        if (!isSessionActive) return;
+
         try {
             const estimatedDuration = (audioBlobSize / 1024) * 0.1;
 
@@ -284,10 +292,10 @@ export default function VirtueSenseDashboard() {
         } catch (err) {
             console.error('Voice analysis error:', err);
         }
-    }, [sessionTime]);
+    }, [sessionTime, isSessionActive]);
 
     const startContinuousRecording = useCallback(async () => {
-        if (!streamRef.current) return;
+        if (!streamRef.current || !isSessionActive) return;
 
         continuousRecordingRef.current = { active: true, intervalId: null };
 
@@ -295,7 +303,7 @@ export default function VirtueSenseDashboard() {
         const activeRecorders = new Set();
 
         const recordChunk = async (duration = 8000) => {
-            if (!continuousRecordingRef.current?.active || !streamRef.current) {
+            if (!continuousRecordingRef.current?.active || !streamRef.current || !isSessionActive) {
                 activeRecorders.forEach(recorder => {
                     if (recorder.state === 'recording') {
                         recorder.stop();
@@ -329,7 +337,7 @@ export default function VirtueSenseDashboard() {
                     activeRecorders.delete(mediaRecorder);
                     const audioBlob = new Blob(chunks, { type: 'audio/webm' });
 
-                    if (audioBlob.size > 5000) {
+                    if (audioBlob.size > 5000 && isSessionActive) {
                         setIsTranscribing(true);
                         await transcribeAudio(audioBlob, chunkId);
                     }
@@ -355,7 +363,7 @@ export default function VirtueSenseDashboard() {
 
         setTimeout(() => {
             const intervalId = setInterval(() => {
-                if (continuousRecordingRef.current?.active) {
+                if (continuousRecordingRef.current?.active && isSessionActive) {
                     recordChunk(8000);
                 } else {
                     clearInterval(intervalId);
@@ -367,7 +375,7 @@ export default function VirtueSenseDashboard() {
             }
         }, 18500);
 
-    }, [transcribeAudio]);
+    }, [transcribeAudio, isSessionActive]);
 
     const stopContinuousRecording = useCallback(() => {
         if (continuousRecordingRef.current?.intervalId) {
@@ -399,7 +407,8 @@ export default function VirtueSenseDashboard() {
     };
 
     const captureAndAnalyze = useCallback(async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        // Only analyze if session is active
+        if (!isSessionActive || !videoRef.current || !canvasRef.current) return;
         if (!streamRef.current) return;
         if (isAnalyzing) return;
         if (videoRef.current.readyState !== 4) return;
@@ -451,8 +460,9 @@ export default function VirtueSenseDashboard() {
         } finally {
             setIsAnalyzing(false);
         }
-    }, [isAnalyzing]);
+    }, [isAnalyzing, isSessionActive]);
 
+    // Session timer - only runs when session is active
     useEffect(() => {
         if (!isSessionActive) return;
 
@@ -463,23 +473,36 @@ export default function VirtueSenseDashboard() {
         return () => clearInterval(interval);
     }, [isSessionActive]);
 
+    // Emotion analysis - only runs when session is active
     useEffect(() => {
-        if (!isSessionActive || !webcamActive) return;
-
-        const runAnalysis = async () => {
-            while (isSessionActive && streamRef.current) {
-                await captureAndAnalyze();
-                await new Promise(resolve => setTimeout(resolve, 500));
+        if (!isSessionActive || !webcamActive) {
+            // Clear the interval if it exists
+            if (analysisIntervalRef.current) {
+                clearInterval(analysisIntervalRef.current);
+                analysisIntervalRef.current = null;
             }
-        };
+            return;
+        }
 
+        // Wait for video to be ready
         const timeout = setTimeout(() => {
             if (videoRef.current?.readyState === 4) {
-                runAnalysis();
+                // Start continuous emotion analysis
+                analysisIntervalRef.current = setInterval(() => {
+                    if (isSessionActive && streamRef.current) {
+                        captureAndAnalyze();
+                    }
+                }, 500);
             }
         }, 1500);
 
-        return () => clearTimeout(timeout);
+        return () => {
+            clearTimeout(timeout);
+            if (analysisIntervalRef.current) {
+                clearInterval(analysisIntervalRef.current);
+                analysisIntervalRef.current = null;
+            }
+        };
     }, [isSessionActive, webcamActive, captureAndAnalyze]);
 
     const calculateMetrics = useCallback(() => {
@@ -593,8 +616,11 @@ export default function VirtueSenseDashboard() {
 
         await startWebcam();
 
+        // Start recording only after webcam is ready
         setTimeout(() => {
-            startContinuousRecording();
+            if (isSessionActive) {
+                startContinuousRecording();
+            }
         }, 2000);
     };
 
@@ -602,6 +628,12 @@ export default function VirtueSenseDashboard() {
         setIsSessionActive(false);
         stopWebcam();
         stopContinuousRecording();
+        
+        // Clear analysis interval
+        if (analysisIntervalRef.current) {
+            clearInterval(analysisIntervalRef.current);
+            analysisIntervalRef.current = null;
+        }
     };
 
     const formatTime = (seconds) => {
@@ -647,7 +679,6 @@ export default function VirtueSenseDashboard() {
             score: answerScore ? Math.round(answerScore.clarity * 10) : 0,
         },
     ] : [];
-
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
