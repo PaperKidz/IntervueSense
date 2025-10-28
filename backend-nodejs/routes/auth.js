@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { ObjectId } = require('mongodb');
 const { verifyToken } = require('../middleware/auth');
@@ -13,10 +12,12 @@ const {
 
 const router = express.Router();
 
-// Signup Route
+// Signup Route - FIXED: Now returns token and user data
 router.post('/signup', async (req, res, next) => {
   try {
     const { email, password, name } = req.body;
+
+    console.log('Signup attempt:', { email, name });
 
     // Validation
     if (!email || !password || !name) {
@@ -70,14 +71,27 @@ router.post('/signup', async (req, res, next) => {
     };
 
     const result = await usersCollection.insertOne(newUser);
+    const userId = result.insertedId.toString();
 
+    // Generate token for immediate login
+    const token = generateToken(userId);
+
+    console.log('User created successfully:', userId);
+
+    // Return token and user data (similar to login response)
     res.status(201).json({
       success: true,
       message: 'Account created successfully',
-      user_id: result.insertedId.toString()
+      token,
+      user: {
+        id: userId,
+        name: newUser.name,
+        email: newUser.email
+      }
     });
 
   } catch (err) {
+    console.error('Signup error:', err);
     next(err);
   }
 });
@@ -87,10 +101,13 @@ router.post('/login', async (req, res, next) => {
   try {
     const { email, password } = req.body;
     
-    console.log('Login attempt:', email, password);
+    console.log('Login attempt:', email);
 
     if (!email || !password) {
-      return res.status(400).json({ error: 'Missing fields' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Email and password are required' 
+      });
     }
 
     const users = getUsersCollection();
@@ -99,14 +116,20 @@ router.post('/login', async (req, res, next) => {
     console.log('User found:', user ? 'YES' : 'NO');
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid email or password' 
+      });
     }
 
     const passwordMatch = comparePassword(password, user.password);
     console.log('Password match:', passwordMatch);
 
     if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid password' });
+      return res.status(401).json({ 
+        success: false,
+        error: 'Invalid email or password' 
+      });
     }
 
     const token = generateToken(user._id.toString());
@@ -121,6 +144,7 @@ router.post('/login', async (req, res, next) => {
       }
     });
   } catch (err) {
+    console.error('Login error:', err);
     next(err);
   }
 });
@@ -151,6 +175,7 @@ router.get('/user/profile', verifyToken, async (req, res, next) => {
     });
 
   } catch (err) {
+    console.error('Get profile error:', err);
     next(err);
   }
 });

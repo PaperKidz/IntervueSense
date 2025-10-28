@@ -1,6 +1,10 @@
 const API_CONFIG = {
-  // Using Nginx reverse proxy - all requests through port 80
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost',
+  // Backend URLs - direct connection since Nginx isn't configured yet
+  NODE_API_URL: import.meta.env.VITE_NODE_API_URL || 'http://localhost:4000',
+  FLASK_API_URL: import.meta.env.VITE_FLASK_API_URL || 'http://localhost:5000',
+  
+  // Use direct connection instead of Nginx proxy for now
+  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000',
   
   TIMEOUT: 30000,
   
@@ -34,6 +38,14 @@ const API_CONFIG = {
       EVALUATE_ANSWER: '/api/evaluate-answer',
       FEEDBACK: '/api/feedback',
     },
+  },
+  
+  // Helper method to get the correct base URL for different services
+  getServiceUrl(service = 'node') {
+    if (service === 'flask') {
+      return this.FLASK_API_URL;
+    }
+    return this.NODE_API_URL;
   }
 };
 

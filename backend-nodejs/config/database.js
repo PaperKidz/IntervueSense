@@ -1,4 +1,3 @@
-
 const { MongoClient } = require('mongodb');
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
@@ -10,13 +9,15 @@ const connectMongoDB = async () => {
     client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
     await client.connect();
     
-    const db = client.db('virtuesense');
+    // FIXED: Changed from 'virtuesense' to 'VirtueSense' to match existing database
+    const db = client.db('VirtueSense');
     usersCollection = db.collection('users');
     
     // Create indexes
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     
     console.log('✅ MongoDB Connected Successfully');
+    console.log(`📦 Database: VirtueSense`);
   } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
     process.exit(1);
@@ -30,4 +31,11 @@ const getUsersCollection = () => {
   return usersCollection;
 };
 
-module.exports = { connectMongoDB, getUsersCollection };
+const closeConnection = async () => {
+  if (client) {
+    await client.close();
+    console.log('🔌 MongoDB connection closed');
+  }
+};
+
+module.exports = { connectMongoDB, getUsersCollection, closeConnection };
