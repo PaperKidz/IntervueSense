@@ -5,11 +5,25 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw
+    Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw,ArrowLeft
 } from 'lucide-react';
 
 import API_CONFIG from "../../config/api.config";
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useProgress } from '../../contexts/ProgressContext';
+
+
+
+
+
 export default function VirtueSenseDashboard() {
+    const [searchParams] = useSearchParams();
+    const navigate = useNavigate();
+    const { completePractice } = useProgress();
+    // Get practice info from URL
+        const moduleId = searchParams.get('module');
+        const sectionId = searchParams.get('section');
+        const practiceId = searchParams.get('practice');
     const interviewQuestions = [
         {
             id: 1,
@@ -656,6 +670,39 @@ export default function VirtueSenseDashboard() {
                 emotionHistory.reduce((sum, item) => sum + item.composure, 0) / emotionHistory.length) / 3
         )
         : 0;
+    const handleCompleteSession = async () => {
+  if (!moduleId || !sectionId || !practiceId) {
+    console.error('Missing practice identifiers');
+    return;
+  }
+
+  try {
+    // Prepare session data
+    const sessionData = {
+      overallScore,
+      averageConfidence: emotionHistory.reduce((sum, item) => sum + item.confidence, 0) / emotionHistory.length,
+      averageEngagement: emotionHistory.reduce((sum, item) => sum + item.engagement, 0) / emotionHistory.length,
+      answerScore: answerScore?.score || 0,
+      sessionDuration: sessionTime,
+      transcriptCount: transcriptions.length
+    };
+
+    // Mark as completed
+    await completePractice(moduleId, sectionId, practiceId, sessionData);
+
+    // Show success message
+    alert('Practice completed! Progress saved.');
+
+    // Navigate back
+    setTimeout(() => {
+      navigate(`/dashboard?module=${moduleId}`);
+    }, 1500);
+
+  } catch (error) {
+    console.error('Failed to save progress:', error);
+    alert('Failed to save progress. Please try again.');
+  }
+};
 
     const radarData = voiceAnalysis ? [
         {
@@ -730,7 +777,14 @@ export default function VirtueSenseDashboard() {
                     </div>
                 </div>
             </div>
-
+            
+            <button 
+            onClick={() => navigate(-1)} 
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+            >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Back to Module</span>
+            </button>               
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Question Card */}
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
@@ -1035,6 +1089,17 @@ export default function VirtueSenseDashboard() {
                         </div>
                     </div>
                 )}
+
+                // After "End Session" button or in the answer evaluation section:
+{isSessionActive && answerScore && (
+  <button
+    onClick={handleCompleteSession}
+    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
+  >
+    <CheckCircle size={20} />
+    Complete Practice
+  </button>
+)}
 
                 {/* Analytics Dashboard */}
                 {emotionHistory.length > 5 && (

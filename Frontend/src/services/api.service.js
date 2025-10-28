@@ -1,221 +1,68 @@
-// src/services/api.service.js
+import axios from 'axios';
 
-import API_CONFIG from '../config/api.config';
+// ✅ Create axios instance with relative baseURL for Nginx proxy
+const api = axios.create({
+  baseURL: '/api', // Relative URL - works with Nginx
+  withCredentials: true,
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  timeout: 30000 // 30 second timeout
+});
 
-/**
- * Custom error class for API errors
- */
-class APIError extends Error {
-  constructor(message, statusCode, data = null) {
-    super(message);
-    this.name = 'APIError';
-    this.statusCode = statusCode;
-    this.data = data;
-  }
-}
-
-/**
- * API Client Service
- * Handles all HTTP requests with proper error handling and timeout
- */
-class APIService {
-  constructor() {
-    this.baseURL = API_CONFIG.BASE_URL;
-    this.timeout = API_CONFIG.TIMEOUT;
-  }
-
-  /**
-   * Get authorization token from localStorage
-   */
-  getAuthToken() {
-    return localStorage.getItem('token');
-  }
-
-  /**
-   * Get default headers
-   */
-  getHeaders(customHeaders = {}) {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...customHeaders,
-    };
-
-    const token = this.getAuthToken();
+// ✅ Request interceptor - Add auth token if available
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    return headers;
-  }
-
-  /**
-   * Create a fetch request with timeout
-   */
-  fetchWithTimeout(url, options = {}) {
-    return Promise.race([
-      fetch(url, options),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Request timeout')), this.timeout)
-      ),
-    ]);
-  }
-
-  /**
-   * Main request handler
-   */
-  async request(endpoint, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const config = {
-      ...options,
-      headers: this.getHeaders(options.headers),
-    };
-
-    try {
-      const response = await this.fetchWithTimeout(url, config);
-
-      // Check if response is ok (status in range 200-299)
-      if (!response.ok) {
-        // Try to parse error response
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: response.statusText };
-        }
-
-        throw new APIError(
-          errorData.message || errorData.error || 'Request failed',
-          response.status,
-          errorData
-        );
-      }
-
-      // Parse successful response
-      const data = await response.json();
-      return data;
-
-    } catch (error) {
-      // Handle different error types
-      if (error instanceof APIError) {
-        throw error;
-      }
-
-      if (error.message === 'Request timeout') {
-        throw new APIError('Request timeout. Please check your connection.', 408);
-      }
-
-      if (error.message === 'Failed to fetch') {
-        throw new APIError('Network error. Please check your internet connection.', 0);
-      }
-
-      // Generic error
-      throw new APIError(error.message || 'An unexpected error occurred', 500);
-    }
-  }
-
-  /**
-   * GET request
-   */
-  async get(endpoint, options = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'GET',
-    });
-  }
-
-  /**
-   * POST request
-   */
-  async post(endpoint, data, options = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * PUT request
-   */
-  async put(endpoint, data, options = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * PATCH request
-   */
-  async patch(endpoint, data, options = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    });
-  }
-
-  /**
-   * DELETE request
-   */
-  async delete(endpoint, options = {}) {
-    return this.request(endpoint, {
-      ...options,
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * Upload file (multipart/form-data)
-   */
-  async uploadFile(endpoint, formData, options = {}) {
-    const url = `${this.baseURL}${endpoint}`;
-    const headers = { ...options.headers };
     
-    // Add auth token if exists
-    const token = this.getAuthToken();
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    // Don't set Content-Type for FormData, browser will set it with boundary
-    const config = {
-      ...options,
-      method: 'POST',
-      headers,
-      body: formData,
-    };
-
-    try {
-      const response = await this.fetchWithTimeout(url, config);
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          errorData = { message: response.statusText };
-        }
-
-        throw new APIError(
-          errorData.message || errorData.error || 'Upload failed',
-          response.status,
-          errorData
-        );
-      }
-
-      return await response.json();
-
-    } catch (error) {
-      if (error instanceof APIError) {
-        throw error;
-      }
-      throw new APIError(error.message || 'Upload failed', 500);
-    }
+    // Debug logging (can remove in production)
+    console.log('📤 API Request:', config.method.toUpperCase(), config.url);
+    
+    return config;
+  },
+  (error) => {
+    console.error('❌ Request Error:', error);
+    return Promise.reject(error);
   }
-}
+);
 
-// Create and export a single instance
-const apiService = new APIService();
-export default apiService;
+// ✅ Response interceptor - Handle errors globally
+api.interceptors.response.use(
+  (response) => {
+    console.log('📥 API Response:', response.config.url, response.status);
+    return response;
+  },
+  (error) => {
+    if (error.response) {
+      // Server responded with error status
+      console.error('❌ API Error:', {
+        url: error.config?.url,
+        status: error.response.status,
+        message: error.response.data?.message || error.response.data
+      });
+      
+      // Handle 401 Unauthorized
+      if (error.response.status === 401) {
+        console.log('⚠️ Unauthorized - redirecting to login');
+        localStorage.removeItem('token');
+        // Only redirect if not already on login page
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+      }
+    } else if (error.request) {
+      // Request made but no response
+      console.error('❌ No Response from server:', error.request);
+    } else {
+      // Something else happened
+      console.error('❌ Error:', error.message);
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
+export default api;

@@ -1,47 +1,52 @@
 // src/components/Auth/Signup.jsx
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import authService from "../../services/auth.service";
 
 export default function Signup() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // 🔒 Auto-redirect if user already logged in
+  useEffect(() => {
+    const token = authService.getToken();
+    if (token) {
+      navigate("/maindash", { replace: true });
+    }
+  }, [navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setLoading(true);
 
-    // Basic validation
+    // ✅ Basic validations
     if (!name || !email || !password) {
-      setError('Please fill in all fields');
+      setError("Please fill in all fields");
       setLoading(false);
       return;
     }
 
-    // Name validation
     if (name.trim().length < 2) {
-      setError('Name must be at least 2 characters long');
+      setError("Name must be at least 2 characters long");
       setLoading(false);
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setError('Please enter a valid email address');
+      setError("Please enter a valid email address");
       setLoading(false);
       return;
     }
 
-    // Password validation
     if (password.length < 6) {
-      setError('Password must be at least 6 characters long');
+      setError("Password must be at least 6 characters long");
       setLoading(false);
       return;
     }
@@ -50,23 +55,23 @@ export default function Signup() {
       const response = await authService.signup(name, email, password);
 
       if (response.success) {
-        // Redirect to home/dashboard
-        navigate('/');
+        // ✅ Store user and redirect directly to dashboard
+        navigate("/maindash", { replace: true });
       } else {
-        setError(response.message || 'Signup failed. Please try again.');
+        setError(response.message || "Signup failed. Please try again.");
       }
     } catch (error) {
-      // Handle different error types
+      // ✅ Detailed error handling
       if (error.statusCode === 409) {
-        setError('Email already exists. Please login instead.');
+        setError("Email already exists. Please login instead.");
       } else if (error.statusCode === 400) {
-        setError(error.message || 'Invalid input. Please check your details.');
+        setError(error.message || "Invalid input. Please check your details.");
       } else if (error.statusCode === 0) {
-        setError('Network error. Please check your internet connection.');
+        setError("Network error. Please check your internet connection.");
       } else if (error.statusCode === 408) {
-        setError('Request timeout. Please try again.');
+        setError("Request timeout. Please try again.");
       } else {
-        setError(error.message || 'An error occurred. Please try again.');
+        setError(error.message || "An error occurred. Please try again.");
       }
     } finally {
       setLoading(false);

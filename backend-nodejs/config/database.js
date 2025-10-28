@@ -1,20 +1,20 @@
-const { MongoClient } = require('mongodb');
+import { MongoClient } from 'mongodb';
 
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017';
 let usersCollection;
 let client;
 
-const connectMongoDB = async () => {
+const connectDB = async () => {
   try {
-    client = new MongoClient(MONGO_URI, { useUnifiedTopology: true });
+    client = new MongoClient(MONGO_URI);
     await client.connect();
     
-    // FIXED: Changed from 'virtuesense' to 'VirtueSense' to match existing database
+    // Connect to VirtueSense database
     const db = client.db('VirtueSense');
     usersCollection = db.collection('users');
     
     // Create indexes
-    await usersCollection.createIndex({ email: 1 }, { unique: true });
+    await usersCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
     
     console.log('✅ MongoDB Connected Successfully');
     console.log(`📦 Database: VirtueSense`);
@@ -26,7 +26,7 @@ const connectMongoDB = async () => {
 
 const getUsersCollection = () => {
   if (!usersCollection) {
-    throw new Error('Database not initialized');
+    throw new Error('Database not initialized. Call connectDB() first.');
   }
   return usersCollection;
 };
@@ -38,4 +38,8 @@ const closeConnection = async () => {
   }
 };
 
-module.exports = { connectMongoDB, getUsersCollection, closeConnection };
+// ✅ ES6 default export
+export default connectDB;
+
+// ✅ Named exports
+export { getUsersCollection, closeConnection };

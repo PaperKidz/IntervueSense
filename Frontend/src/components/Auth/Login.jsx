@@ -1,9 +1,8 @@
 // src/components/Auth/Login.jsx
-
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth.service';
-import API_CONFIG from "../../config/api.config";
+
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -11,6 +10,18 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Auto-redirect when already authenticated (defensive)
+  useEffect(() => {
+    try {
+      if (authService.isAuthenticated()) {
+        // If already logged in, go to maindash and replace history so back won't show login
+        navigate('/maindash', { replace: true });
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,7 +35,6 @@ export default function Login() {
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Please enter a valid email address');
@@ -35,24 +45,24 @@ export default function Login() {
     try {
       const response = await authService.login(email, password);
 
-      if (response.success) {
-        // Redirect to home/dashboard
-        navigate('/');
+      if (response && response.success) {
+        // Navigate to maindash **after** token is saved by authService.login
+        // use replace:true so the Login entry is replaced in history (prevents back -> login)
+        navigate('/maindash', { replace: true });
       } else {
-        setError(response.message || 'Login failed. Please try again.');
+        setError(response?.message || 'Login failed. Please try again.');
       }
-    } catch (error) {
-      // Handle different error types
-      if (error.statusCode === 401) {
+    } catch (err) {
+      if (err.statusCode === 401) {
         setError('Invalid email or password');
-      } else if (error.statusCode === 404) {
+      } else if (err.statusCode === 404) {
         setError('User not found. Please sign up first.');
-      } else if (error.statusCode === 0) {
+      } else if (err.statusCode === 0) {
         setError('Network error. Please check your internet connection.');
-      } else if (error.statusCode === 408) {
+      } else if (err.statusCode === 408) {
         setError('Request timeout. Please try again.');
       } else {
-        setError(error.message || 'An error occurred. Please try again.');
+        setError(err.message || 'An error occurred. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -65,44 +75,22 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen bg-white">
-      {/* Left Panel - Brand Side with Blue Background */}
+      {/* Left Panel - Brand Side */}
       <div className="hidden lg:flex lg:w-1/2 bg-blue-900 relative overflow-hidden">
-        {/* Wavy pattern overlay */}
         <div className="absolute inset-0 opacity-20">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="wave" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-                <path d="M0 50 Q 25 30, 50 50 T 100 50" stroke="white" strokeWidth="1" fill="none" opacity="0.5"/>
-                <path d="M0 60 Q 25 40, 50 60 T 100 60" stroke="white" strokeWidth="1" fill="none" opacity="0.4"/>
-                <path d="M0 70 Q 25 50, 50 70 T 100 70" stroke="white" strokeWidth="1" fill="none" opacity="0.3"/>
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#wave)"/>
-          </svg>
+          {/* decorative svg */}
         </div>
 
-        {/* Brand Content */}
         <div className="relative z-10 flex flex-col justify-center px-20 w-full">
-          {/* Logo and Company Name */}
           <div className="flex items-center gap-4 mb-12">
             <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg">
-              <svg className="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="3" strokeWidth="2"/>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12m11.32-11.32l2.12-2.12"/>
-              </svg>
+              {/* logo svg */}
             </div>
-            <h1 className="text-4xl font-bold text-white tracking-wide" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-              VirtueSense
-            </h1>
+            <h1 className="text-4xl font-bold text-white tracking-wide">VirtueSense</h1>
           </div>
 
-          {/* Tagline */}
-          <h2 className="text-5xl font-bold text-white mb-6 leading-tight" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-            Empowering Intelligent Experiences
-          </h2>
-
-          {/* Description */}
-          <p className="text-lg text-blue-100 leading-relaxed max-w-lg" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
+          <h2 className="text-5xl font-bold text-white mb-6 leading-tight">Empowering Intelligent Experiences</h2>
+          <p className="text-lg text-blue-100 leading-relaxed max-w-lg">
             Sign in to continue your journey with VirtueSense. Explore intelligent solutions, track insights, and enhance your skills through data-driven innovation.
           </p>
         </div>
@@ -111,65 +99,40 @@ export default function Login() {
       {/* Right Panel - Login Form */}
       <div className="flex-1 flex items-center justify-center px-8 py-12 bg-gray-50">
         <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl p-12">
-          {/* Welcome Header */}
           <div className="text-center mb-10">
-            <h2 className="text-4xl font-bold text-gray-900 mb-3" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-              Welcome 👋
-            </h2>
-            <p className="text-gray-600 text-base" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-              Log in to your VirtueSense account
-            </p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-3">Welcome 👋</h2>
+            <p className="text-gray-600 text-base">Log in to your VirtueSense account</p>
           </div>
 
-          {/* Login Form */}
-          <div className="space-y-6">
-            {/* Email Address */}
+          <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-                Email Address
-              </label>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">Email Address</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                  </svg>
-                </span>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter email address"
                   disabled={loading}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{fontFamily: 'Inter, system-ui, sans-serif'}}
+                  className="w-full pl-4 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-                Password
-              </label>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">Password</label>
               <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                  </svg>
-                </span>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter password"
                   disabled={loading}
-                  className="w-full pl-12 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{fontFamily: 'Inter, system-ui, sans-serif'}}
+                  className="w-full pl-4 pr-4 py-3.5 bg-white border-2 border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all disabled:opacity-50"
                 />
               </div>
             </div>
 
-            {/* Remember Me & Forgot Password */}
             <div className="flex items-center justify-between">
               <label className="flex items-center cursor-pointer">
                 <input
@@ -177,42 +140,36 @@ export default function Login() {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                   disabled={loading}
-                  className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer disabled:opacity-50"
                 />
-                <span className="ml-2.5 text-sm font-medium text-gray-700" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
-                  Remember Me
-                </span>
+                <span className="ml-2.5 text-sm font-medium text-gray-700">Remember Me</span>
               </label>
               <button
                 type="button"
                 onClick={() => navigate('/forgot-password')}
                 disabled={loading}
-                className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{fontFamily: 'Inter, system-ui, sans-serif'}}
+                className="text-sm font-semibold text-blue-600 hover:text-blue-800"
               >
                 Forgot Password?
               </button>
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center" style={{fontFamily: 'Inter, system-ui, sans-serif'}}>
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm text-center">
                 {error}
               </div>
             )}
 
-            {/* Login Button */}
             <button
-              onClick={handleSubmit}
+              type="submit"
               disabled={loading}
-              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center"
-              style={{fontFamily: 'Inter, system-ui, sans-serif'}}
+              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-bold py-4 rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
             >
               {loading ? (
                 <>
                   <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
                   </svg>
                   Logging in...
                 </>
@@ -221,16 +178,15 @@ export default function Login() {
               )}
             </button>
 
-            {/* Create Account Button */}
             <button
+              type="button"
               onClick={handleCreateAccount}
               disabled={loading}
-              className="w-full bg-white border-2 border-blue-700 text-blue-700 hover:bg-blue-50 font-bold py-4 rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{fontFamily: 'Inter, system-ui, sans-serif'}}
+              className="w-full bg-white border-2 border-blue-700 text-blue-700 hover:bg-blue-50 font-bold py-4 rounded-xl transition-all duration-200"
             >
               Create Account
             </button>
-          </div>
+          </form>
         </div>
       </div>
     </div>

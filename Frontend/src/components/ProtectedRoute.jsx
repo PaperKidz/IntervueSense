@@ -1,16 +1,16 @@
-import { Navigate } from 'react-router-dom'
+// src/components/ProtectedRoute.jsx
+import { Navigate } from "react-router-dom";
+import authService from "../services/auth.service";
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token')
+  const token = authService.getToken();
   
-  // If no token, redirect to login
   if (!token) {
-    console.log('No token found, redirecting to login')
-    return <Navigate to="/login" replace />
+    console.warn("ProtectedRoute → No token, redirecting to login");
+    return <Navigate to="/login" replace />;
   }
-  
-  // If token exists, render the protected component
-  return children
-}
 
-export default ProtectedRoute
+  return children;
+};
+
+export default ProtectedRoute;

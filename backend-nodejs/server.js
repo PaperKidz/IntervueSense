@@ -1,87 +1,103 @@
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
+import express from "express";
+import dotenv from "dotenv";
+import cors from "cors";
+import connectDB from "./config/database.js";
+import progressRoutes from "./routes/progress.routes.js";
 
-const { connectMongoDB } = require('./config/database');
-const authRoutes = require('./routes/auth');
-const aiRoutes = require('./routes/ai');
-const { errorHandler } = require('./middleware/errorHandler');
+// Load environment variables
+dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 4000;
 
-// CORS Configuration - Allow requests from React frontend
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// ✅ Trust proxy (important for Nginx)
+app.set('trust proxy', 1);
 
-// Middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// ✅ Middleware - Parse JSON and URL-encoded data
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Connect to MongoDB
-connectMongoDB().catch(err => {
-  console.error('Failed to connect to MongoDB:', err);
-  process.exit(1);
-});
+// ✅ CORS Configuration - Simplified for Nginx proxy
+app.use(
+  cors({
+    origin: true, // Accept all origins since Nginx validates them
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Forwarded-For', 'X-Real-IP'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range']
+  })
+);
 
-// Health Check
-app.get('/', (req, res) => {
+// ✅ Handle preflight requests - Use regex instead of '*'
+app.options(/.*/, cors());
+
+// ✅ Connect to MongoDB Atlas
+connectDB();
+
+// ✅ API Routes
+app.use("/api/progress", progressRoutes);
+
+// ✅ Health check route
+app.get("/", (req, res) => {
   res.json({ 
-    message: 'VirtueSense API is Running!',
-    status: 'ok',
-    version: '1.0.0'
-  });
-});
-
-// API Health Check
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'healthy',
+    status: 'running',
+    message: 'VirtueSense Node API is running 🚀',
     timestamp: new Date().toISOString(),
-    service: 'VirtueSense Node.js API'
+    database: 'MongoDB Atlas - VirtueSense'
   });
 });
 
-// Routes
-app.use('/api/auth', authRoutes);
-app.use('/api', aiRoutes);
+app.get("/api", (req, res) => {
+  res.json({ 
+    status: 'ok',
+    message: 'API is working',
+    endpoints: {
+      progress: '/api/progress/my',
+      complete: '/api/progress/complete'
+    }
+  });
+});
 
-// Error Handling Middleware
-app.use(errorHandler);
-
-// 404 Handler
+// ✅ 404 handler
 app.use((req, res) => {
-  console.log('404 - Route not found:', req.method, req.path);
-  res.status(404).json({ 
-    success: false, 
-    error: 'Route not found',
-    path: req.path,
-    method: req.method
+  console.log(`⚠️  404: ${req.method} ${req.url}`);
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.url} not found`
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log('\n' + '='.repeat(70));
-  console.log('🚀 VIRTUESENSE API SERVER STARTED');
-  console.log('='.repeat(70));
-  console.log(`📍 Server: http://localhost:${PORT}`);
-  console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log('='.repeat(70));
-  console.log('\n✅ Server is ready!\n');
+// ✅ Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('❌ Error:', err.message);
+  console.error('Stack:', err.stack);
+  res.status(500).json({ 
+    success: false, 
+    error: err.message 
+  });
 });
 
-// Handle graceful shutdown
-process.on('SIGTERM', () => {
-  console.log('SIGTERM signal received: closing HTTP server');
+// ✅ Start Server
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log('');
+  console.log('═══════════════════════════════════════════════════');
+  console.log('  VirtueSense Node.js API Server');
+  console.log('═══════════════════════════════════════════════════');
+  console.log(`✅ Server running on: http://localhost:${PORT}`);
+  console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`✅ CORS: Enabled for Nginx proxy`);
+  console.log(`✅ Database: MongoDB Atlas`);
+  console.log('═══════════════════════════════════════════════════');
+  console.log('');
+});
+
+// ✅ Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down gracefully...');
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
-  console.log('SIGINT signal received: closing HTTP server');
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 Shutting down gracefully...');
   process.exit(0);
 });

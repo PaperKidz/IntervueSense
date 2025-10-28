@@ -38,6 +38,14 @@ const API_CONFIG = {
       EVALUATE_ANSWER: '/api/evaluate-answer',
       FEEDBACK: '/api/feedback',
     },
+
+    // Inside API_CONFIG object, add PROGRESS section:
+    PROGRESS: {
+      GET_ALL: '/api/progress',
+      COMPLETE_PRACTICE: '/api/progress/practice/complete',
+      COMPLETE_THEORY: '/api/progress/theory/complete',
+      UPDATE_STATUS: '/api/progress/status',
+    },
   },
   
   // Helper method to get the correct base URL for different services

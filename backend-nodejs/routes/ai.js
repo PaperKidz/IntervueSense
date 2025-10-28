@@ -1,88 +1,67 @@
-const express = require('express');
-const axios = require('axios');
-const { verifyToken } = require('../middleware/auth');
+// backend-nodejs/routes/ai.js
+import express from "express";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import { OpenAI } from "openai";
+
+// Resolve directory (ensures correct .env path)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ✅ Explicitly load .env from backend-nodejs directory
+dotenv.config({ path: path.join(__dirname, "../.env") });
 
 const router = express.Router();
-const FLASK_SERVICE = process.env.FLASK_SERVICE || 'http://localhost:5000';
 
-// Helper function to forward requests to Flask
-const forwardToFlask = async (endpoint, data) => {
-  try {
-    const response = await axios.post(
-      `${FLASK_SERVICE}${endpoint}`,
-      data,
-      {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
-      }
-    );
-    return response.data;
-  } catch (error) {
-    throw new Error(`Flask service error: ${error.message}`);
-  }
-};
+// ✅ Initialize OpenAI client
+if (!process.env.OPENAI_API_KEY) {
+  console.error("❌ Missing OpenAI API key. Please set OPENAI_API_KEY in .env");
+  process.exit(1);
+}
 
-// Health Check
-router.get('/health', async (req, res, next) => {
+const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+// ✅ Define Mongoose Schema
+const aiResponseSchema = new mongoose.Schema({
+  prompt: String,
+  response: String,
+  createdAt: { type: Date, default: Date.now },
+});
+
+const AIResponse = mongoose.model("AIResponse", aiResponseSchema);
+
+// ✅ Test route
+router.get("/", (req, res) => {
+  res.json({ message: "AI routes active ✅" });
+});
+
+// ✅ POST /generate → get AI response + store in DB
+router.post("/generate", async (req, res) => {
   try {
-    const flaskHealth = await axios.get(`${FLASK_SERVICE}/api/health`, { timeout: 5000 });
-    
-    res.json({
-      nodejs: 'Connected ✅',
-      flask: 'Connected ✅',
-      message: 'All systems operational'
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ success: false, error: "Prompt is required" });
+    }
+
+    // Generate response from OpenAI
+    const completion = await client.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
     });
+
+    const aiText = completion.choices[0].message.content;
+
+    // Save in MongoDB
+    const newResponse = new AIResponse({ prompt, response: aiText });
+    await newResponse.save();
+
+    res.status(200).json({ success: true, data: newResponse });
   } catch (err) {
-    res.json({
-      nodejs: 'Connected ✅',
-      flask: 'Disconnected ❌',
-      message: 'Flask service unavailable'
-    });
+    console.error("Error in /generate:", err);
+    res.status(500).json({ success: false, error: "Failed to generate response" });
   }
 });
 
-// Emotion Analysis
-router.post('/analyze-emotion', verifyToken, async (req, res, next) => {
-  try {
-    console.log('📸 Processing emotion analysis...');
-    const result = await forwardToFlask('/api/analyze-emotion', req.body);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Audio Transcription
-router.post('/transcribe-audio', verifyToken, async (req, res, next) => {
-  try {
-    console.log('🎤 Processing audio transcription...');
-    const result = await forwardToFlask('/api/transcribe-audio', req.body);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Voice Analysis
-router.post('/analyze-voice-comprehensive', verifyToken, async (req, res, next) => {
-  try {
-    console.log('🎙️ Processing voice analysis...');
-    const result = await forwardToFlask('/api/analyze-voice-comprehensive', req.body);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-// Answer Evaluation
-router.post('/evaluate-answer', verifyToken, async (req, res, next) => {
-  try {
-    console.log('🧠 Processing answer evaluation...');
-    const result = await forwardToFlask('/api/evaluate-answer', req.body);
-    res.json(result);
-  } catch (err) {
-    next(err);
-  }
-});
-
-module.exports = router;
+export default router;
