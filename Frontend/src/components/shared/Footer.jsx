@@ -28,12 +28,11 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="text-white font-semibold mb-4">Company</h4>
+            <h4 className="text-white font-semibold mb-4">Social</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">Press</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-indigo-400 transition-colors">News</a></li>
+              <li><a href="#" className="hover:text-indigo-400 transition-colors">Twitter</a></li>
+              <li><a href="#" className="hover:text-indigo-400 transition-colors">LinkedIn</a></li>
+              <li><a href="#" className="hover:text-indigo-400 transition-colors">GitHub</a></li>
             </ul>
           </div>
 

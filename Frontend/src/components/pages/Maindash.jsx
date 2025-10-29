@@ -8,6 +8,7 @@ import { modules, getModuleById } from '../../data/modulesData';
 
 const ModuleDashboard = () => {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const { progress, completePractice, getItemStatus, isLoading: progressLoading } = useProgress();
   const progressData = progress || {};
@@ -238,6 +239,7 @@ const ModuleDashboard = () => {
   const completion = getModuleCompletion(selectedModule);
 
   return (
+    
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Button */}

@@ -165,36 +165,84 @@ def evaluate_answer():
         question = data['question']
         answer = data['answer']
 
-        prompt = f"""You are an expert interview coach evaluating a candidate's response. Be constructive and encouraging while providing honest feedback.
+        # ✅ Escaped braces {{ }} to avoid Invalid format specifier
+        prompt = f"""You are an expert interview coach with 15+ years of experience evaluating technical and behavioral interviews. Your goal is to provide encouraging, actionable feedback that helps candidates improve while generously acknowledging their strengths.
 
 Question: {question}
 Candidate's Answer: {answer}
 
-IMPORTANT EVALUATION GUIDELINES:
-- Ignore minor grammatical errors and transcription mistakes
-- Ignore word repetitions caused by transcription issues
-- Focus on the overall message and content quality
-- Be lenient with filler words if the content is strong
-- Reward confident, detailed responses
-- Consider that some awkwardness may be from nervousness, not lack of knowledge
+EVALUATION PHILOSOPHY:
+Focus on CONTENT and SUBSTANCE over delivery perfection. This is about evaluating ideas, not speech patterns.
 
-Please evaluate this answer and provide:
-1. An overall score from 1-10 (be generous - 7-8 for good answers, 9-10 for excellent)
-2. A clarity score from 1-10 (how well-structured and understandable)
-3. A relevance score from 1-10 (how well it addresses the question)
-4. Key strengths (2-3 sentences, be specific and encouraging)
-5. Areas for improvement (2-3 sentences, be constructive)
-6. Overall feedback (2-3 sentences, balanced and motivating)
+CRITICAL - TRANSCRIPTION & DELIVERY TOLERANCE:
+- COMPLETELY IGNORE: Grammatical errors, word repetitions, transcription artifacts, stutters
+- COMPLETELY IGNORE: Awkward phrasing or sentence structure caused by speaking naturally
+- FOCUS ON: The core message, key points, and overall substance of what they're communicating
+- Remember: Nervousness affects delivery, not knowledge. Evaluate what they KNOW, not how smoothly they said it.
 
-Respond in JSON format:
+SCORING CALIBRATION (BE GENEROUS):
+
+1-3: Completely off-topic, factually incorrect, or shows fundamental misunderstanding
+4-5: Touches on the topic but missing major elements or significantly incomplete
+6-7: Good, solid answer - addresses the question with reasonable detail (THIS SHOULD BE YOUR DEFAULT FOR DECENT ANSWERS)
+8-9: Strong answer with specific examples, clear structure, and good depth
+10: Truly exceptional - insightful, perfectly structured, goes above and beyond
+
+IMPORTANT: If someone gives a reasonable answer that addresses the question with some substance, they should get AT LEAST a 6-7. Reserve low scores (1-5) only for answers that are genuinely problematic.
+
+EVALUATION CRITERIA:
+
+1. RELEVANCE (Does it answer the question?):
+- Does the response directly address what was asked?
+- Are the main points of the question covered?
+- Stay focused on whether they understood and addressed the core question
+
+2. CLARITY (Is the message understandable?):
+- Can you follow their main points despite any delivery issues?
+- Is there a general logical flow to their thinking?
+- Would an interviewer understand what they're trying to communicate?
+- IGNORE surface-level delivery issues - focus on whether the IDEAS are clear
+
+3. DEPTH & QUALITY (How substantive is the content?):
+- Are there specific examples or details (not just generic statements)?
+- Does it demonstrate actual understanding or experience?
+- For behavioral: Do they explain the situation, their actions, and results?
+- For technical: Is the explanation reasonably accurate and detailed?
+
+STRENGTHS - Look for and highlight:
+- Specific examples with context and outcomes
+- Clear problem-solving thinking or methodology
+- Technical accuracy and understanding
+- Good structure (even if imperfectly delivered)
+- Self-awareness and learning mindset
+- Any concrete details, numbers, or measurable results
+
+IMPROVEMENTS - Focus on content gaps, not delivery:
+- What key information is missing? (impact, specific actions, results)
+- Where could they add more specific details or examples?
+- What aspects of the question weren't fully addressed?
+- Are there technical concepts that need more explanation?
+- DON'T criticize filler words, stuttering, or transcription issues
+
+RESPONSE FORMAT (Valid JSON):
+
 {{
   "score": <number 1-10>,
   "clarity": <number 1-10>,
   "relevance": <number 1-10>,
-  "strengths": "<text>",
-  "improvements": "<text>",
-  "feedback": "<text>"
-}}"""
+  "strengths": "<2-3 specific, encouraging observations. Reference concrete elements from their answer. Be genuinely positive about what they did well.>",
+  "improvements": "<2-3 actionable suggestions focused on CONTENT to add, not delivery to fix. Be constructive and specific.>",
+  "feedback": "<2-3 sentences providing balanced, motivating feedback. Start positive, note one key growth area (content-focused), end with encouragement.>"
+}}
+
+FINAL REMINDERS:
+- Be GENEROUS and ENCOURAGING - you're a coach, not a critic
+- Default to 6-7 for solid answers, not 4-5
+- Ignore ALL delivery and transcription issues
+- Focus feedback on what content to add, not how to speak better
+- If the answer is completely unrelated to the question, THEN use low scores (1-3)
+- Make the candidate feel good about what they did well while showing them how to level up
+"""
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -219,6 +267,7 @@ Respond in JSON format:
         logger.error(f"Evaluation error: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"success": False, "error": f"Evaluation error: {str(e)}"}), 500
+
 
 @app.route('/api/analyze-voice-comprehensive', methods=['POST'])
 def analyze_voice_comprehensive():

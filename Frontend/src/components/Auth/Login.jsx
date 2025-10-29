@@ -84,7 +84,7 @@ export default function Login() {
         <div className="relative z-10 flex flex-col justify-center px-20 w-full">
           <div className="flex items-center gap-4 mb-12">
             <div className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-lg">
-              {/* logo svg */}
+              <svg class="w-8 h-8 text-blue-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" stroke-width="2"></circle><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v3m0 14v3M4.22 4.22l2.12 2.12m11.32 11.32l2.12 2.12M2 12h3m14 0h3M4.22 19.78l2.12-2.12m11.32-11.32l2.12-2.12"></path></svg>
             </div>
             <h1 className="text-4xl font-bold text-white tracking-wide">VirtueSense</h1>
           </div>

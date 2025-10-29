@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import authService from '../../services/auth.service';
+import { useAuthStatus } from '../shared/NavBar'; // Import the custom hook
 import {
   Sparkles, Play, Smile, Mic, Brain, TrendingUp,
   Target, Zap, Award, Users, ChevronRight
@@ -9,10 +9,9 @@ import {
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const isLoggedIn = useAuthStatus(); // Use the custom hook
 
   const handleNavigate = (path) => {
-    const isLoggedIn = authService?.isAuthenticated?.() || !!localStorage.getItem('token');
-
     switch (path) {
       case '/home':
         navigate('/home');
@@ -63,6 +62,60 @@ export default function Home() {
       color: "from-green-400 to-emerald-500"
     }
   ];
+  const howItWorks = [
+    {
+      icon: <Target className="w-16 h-16" />,
+      title: "Set Your Goal",
+      description: "Choose your interview type and select the questions you want to practice. Set your goals and get ready to improve your interview skills.",
+      color: "text-purple-600"
+    },
+    {
+      icon: <Play className="w-16 h-16" />,
+      title: "Start Practicing",
+      description: "Begin your practice session with AI monitoring. Our system captures your video, analyzes your voice, and tracks your emotions in real-time as you answer questions.",
+      color: "text-blue-600"
+    },
+    {
+      icon: <Zap className="w-16 h-16" />,
+      title: "Real-time Feedback",
+      description: "Get instant insights on your performance. Track your confidence, engagement, and composure levels while you practice, helping you adjust and improve on the fly.",
+      color: "text-indigo-600"
+    },
+    {
+      icon: <Award className="w-16 h-16" />,
+      title: "Achieve Excellence",
+      description: "Review comprehensive analytics and detailed feedback. Identify your strengths, work on improvements, and watch your interview skills reach the next level.",
+      color: "text-green-600"
+    }
+  ];
+
+  const instructors = [
+    {
+      name: "Sarah Johnson",
+      role: "Senior HR Manager",
+      company: "Tech Corp",
+      image: "https://i.pravatar.cc/150?img=1"
+    },
+    {
+      name: "Michael Chen",
+      role: "Interview Coach",
+      company: "Career Plus",
+      image: "https://i.pravatar.cc/150?img=13"
+    },
+    {
+      name: "Emily Rodriguez",
+      role: "Talent Acquisition Lead",
+      company: "Innovation Labs",
+      image: "https://i.pravatar.cc/150?img=5"
+    },
+    {
+      name: "David Kumar",
+      role: "Career Counselor",
+      company: "Future Skills",
+      image: "https://i.pravatar.cc/150?img=12"
+    }
+  ];
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
@@ -85,18 +138,11 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
-                  onClick={() => handleNavigate('/signup')}
+                  onClick={() => handleNavigate(isLoggedIn ? '/maindash' : '/signup')}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105"
                 >
-                  Get Started
+                  {isLoggedIn ? 'Continue Learning' : 'Get Started'}
                   <ChevronRight size={20} />
-                </button>
-
-                <button
-                  onClick={() => handleNavigate('/maindash')}
-                  className="bg-white hover:bg-gray-50 text-indigo-600 px-8 py-4 rounded-lg font-semibold border-2 border-indigo-600 transition-all cursor-pointer transform hover:scale-105"
-                >
-                  Try Demo
                 </button>
               </div>
             </div>
@@ -237,7 +283,96 @@ export default function Home() {
           </div>
         </div>
       </section>
+      {/* How It Works Section */}
+      <section id="how-it-works" className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">How it works</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Master your interview skills in four simple steps with AI-powered coaching
+            </p>
+          </div>
 
+          <div className="space-y-12">
+            {howItWorks.map((step, index) => (
+              <div
+                key={index}
+                className={`flex flex-col ${index % 2 === 0 ? 'lg:flex-row' : 'lg:flex-row-reverse'} items-center gap-8 lg:gap-16`}
+              >
+                <div className="flex-1">
+                  <div className="bg-white rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-shadow">
+                    <div className="inline-block mb-4">
+                      <div className={`p-4 bg-gradient-to-br ${
+                        index === 0 ? 'from-purple-100 to-purple-200' :
+                        index === 1 ? 'from-blue-100 to-blue-200' :
+                        index === 2 ? 'from-indigo-100 to-indigo-200' :
+                        'from-green-100 to-green-200'
+                      } rounded-2xl`}>
+                        <div className={step.color}>
+                          {step.icon}
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-3">{step.title}</h3>
+                    <p className="text-gray-600 leading-relaxed text-lg">{step.description}</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex justify-center">
+                  <div className="relative">
+                    <div className={`w-64 h-64 rounded-3xl bg-gradient-to-br ${
+                      index === 0 ? 'from-purple-400 to-purple-600' :
+                      index === 1 ? 'from-blue-400 to-blue-600' :
+                      index === 2 ? 'from-indigo-400 to-indigo-600' :
+                      'from-green-400 to-green-600'
+                    } shadow-2xl flex items-center justify-center transform hover:scale-105 transition-transform`}>
+                      <div className="text-white text-8xl font-bold opacity-20">
+                        {index + 1}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Meet the Instructors */}
+      <section id="instructors" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <p className="text-indigo-600 font-semibold mb-2">Tutors</p>
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">Meet the Experts</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Our AI-Circle, instructors right all over the world students. We offer the knowledge and success.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {instructors.map((instructor, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 p-6 text-center border border-gray-100 hover:-translate-y-2"
+              >
+                <img
+                  src={instructor.image}
+                  alt={instructor.name}
+                  className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-indigo-100"
+                />
+                <h3 className="text-xl font-bold text-gray-900 mb-1">{instructor.name}</h3>
+                <p className="text-indigo-600 font-semibold mb-1">{instructor.role}</p>
+                <p className="text-gray-500 text-sm">{instructor.company}</p>
+                <div className="flex justify-center gap-3 mt-4">
+                  <button className="w-8 h-8 rounded-full bg-gray-100 hover:bg-indigo-100 flex items-center justify-center transition-colors">
+                    <Users size={16} className="text-gray-600" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -248,12 +383,36 @@ export default function Home() {
             Join thousands of successful candidates who improved their interview skills with VirtueSense
           </p>
           <button
-            onClick={() => handleNavigate('/signup')}
+            onClick={() => handleNavigate(isLoggedIn ? '/maindash' : '/signup')}
             className="bg-white hover:bg-gray-100 text-indigo-600 px-10 py-4 rounded-lg font-bold text-lg transition-all shadow-xl hover:shadow-2xl inline-flex items-center gap-2 cursor-pointer transform hover:scale-105"
           >
-            Start Your Journey
+            {isLoggedIn ? 'Continue Learning' : 'Start Your Journey'}
             <ChevronRight size={24} />
           </button>
+        </div>
+      </section>
+       {/* Testimonial Section */}
+      <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-12">
+            <div className="flex items-center justify-center mb-6">
+              <Sparkles className="w-12 h-12 text-indigo-600" />
+            </div>
+            <p className="text-2xl lg:text-3xl font-bold text-gray-900 text-center mb-8 leading-relaxed">
+              "VirtueSense was fantastic! It is a master platform for those looking to start a new career, or need a refresher."
+            </p>
+            <div className="flex items-center justify-center gap-4">
+              <img
+                src="https://i.pravatar.cc/150?img=8"
+                alt="Jenny Dyso"
+                className="w-16 h-16 rounded-full border-4 border-indigo-100"
+              />
+              <div className="text-left">
+                <p className="font-bold text-gray-900">Jenny Dyso</p>
+                <p className="text-gray-600">Product Designer</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
     </div>

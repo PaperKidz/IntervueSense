@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Login from './components/Auth/Login';
 import Signup from './components/Auth/Signup';
+import ForgotPassword from './components/Auth/ForgotPassword';
 import Home from './components/pages/Home';
-import Dashboard from './components/pages/Dashboard';
+import Dashboard from './components/pages/dashboard';
+
 import MainDash from './components/pages/Maindash';
 import TheoryPage from './components/pages/TheoryPage';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +36,7 @@ function App() {
           <Route path="/home" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Protected Routes */}
           <Route

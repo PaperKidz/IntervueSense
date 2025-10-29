@@ -1,10 +1,10 @@
-// server.js
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import connectDB from "./config/database.js";
 import progressRoutes from "./routes/progress.routes.js";
-import authRoutes from "./routes/auth.js"; // ✅ fixed default import
+import authRoutes from "./routes/auth.js";
+import aiRoutes from "./routes/ai.js"; // ✅ ADD THIS LINE
 
 // Load environment variables
 dotenv.config();
@@ -21,7 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ CORS Configuration - Simplified for Nginx proxy
 app.use(
   cors({
-    origin: true, // Accept all origins since Nginx validates them
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: [
@@ -35,7 +35,7 @@ app.use(
   })
 );
 
-// ✅ Handle preflight requests - Use regex instead of '*'
+// ✅ Handle preflight requests
 app.options(/.*/, cors());
 
 // ✅ Connect to MongoDB Atlas
@@ -43,7 +43,8 @@ connectDB();
 
 // ✅ API Routes
 app.use("/api/progress", progressRoutes);
-app.use("/api/auth", authRoutes); // ✅ Auth routes now working
+app.use("/api/auth", authRoutes);
+app.use("/api/ai", aiRoutes); // ✅ ADD THIS LINE (Mount AI routes)
 
 // ✅ Health check route
 app.get("/", (req, res) => {
@@ -63,6 +64,7 @@ app.get("/api", (req, res) => {
       auth: "/api/auth",
       progress: "/api/progress/my",
       complete: "/api/progress/complete",
+      ai: "/api/ai/evaluate-answer", // ✅ Helpful info for testing
     },
   });
 });
@@ -76,7 +78,7 @@ app.use((req, res) => {
   });
 });
 
-// ✅ Error handling middleware
+// ✅ Error handler
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err.message);
   console.error("Stack:", err.stack);

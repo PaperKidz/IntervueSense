@@ -495,7 +495,6 @@ export default function VirtueSenseDashboard() {
 
         setIsEvaluating(true);
         const fullAnswer = questionTranscripts.join(' ');
-        // ✅ Use currentQuestion from component scope (already defined at top)
 
         try {
             const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.EVALUATE_ANSWER}`, {
@@ -739,13 +738,48 @@ export default function VirtueSenseDashboard() {
     ] : [];
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">     
-            <button 
-            onClick={() => navigate(-1)} 
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-            >
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm font-medium">Back to Module</span>
-            </button>               
+            {/* Top Navigation Bar */}
+        <div className="max-w-7xl mx-auto mb-6">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+                <button 
+                    onClick={() => navigate(-1)} 
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    <span className="text-sm font-medium">Back to Module</span>
+                </button>
+                
+                <div className="flex items-center gap-4">
+                    {isRecording && (
+                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-200">
+                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                            <span className="text-sm text-red-700 font-medium">Recording</span>
+                        </div>
+                    )}
+                    <div className="text-right">
+                        <div className="text-sm text-gray-500 mb-1">Session Time</div>
+                        <div className="text-2xl font-mono font-bold text-gray-900">{formatTime(sessionTime)}</div>
+                    </div>
+                    {!isSessionActive ? (
+                        <button
+                            onClick={startSession}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
+                        >
+                            <Play size={20} />
+                            Start Practice
+                        </button>
+                    ) : (
+                        <button
+                            onClick={stopSession}
+                            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
+                        >
+                            <Square size={20} />
+                            End Session
+                        </button>
+                    )}
+                </div>
+            </div>
+        </div>               
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Question Card */}
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-xl shadow-lg p-8 text-white">
@@ -1050,14 +1084,27 @@ export default function VirtueSenseDashboard() {
                         </div>
                     </div>
                 )}
+
 {isSessionActive && answerScore && (
-  <button
-    onClick={handleCompleteSession}
-    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
-  >
-    <CheckCircle size={20} />
-    Complete Practice
-  </button>
+  <div className="flex flex-col items-end gap-2">
+    <button
+      onClick={handleCompleteSession}
+      disabled={answerScore.score < 7}
+      className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm ${
+        answerScore.score >= 7
+          ? 'bg-green-600 hover:bg-green-700 text-white cursor-pointer'
+          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+      }`}
+    >
+      <CheckCircle size={20} />
+      Complete Practice
+    </button>
+    {answerScore.score < 7 && (
+      <p className="text-sm text-gray-600">
+        Score 7 or above required to complete
+      </p>
+    )}
+  </div>
 )}
 
                 {/* Analytics Dashboard */}
