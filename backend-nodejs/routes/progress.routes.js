@@ -265,4 +265,39 @@ router.get('/module/:moduleId', async (req, res) => {
   }
 });
 
+router.delete('/reset', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV !== 'development') {
+      return res.status(403).json({
+        success: false,
+        message: 'Progress reset is only allowed in development mode'
+      });
+    }
+
+    const userId = getUserId(req);
+    console.log('🧹 Resetting progress for user:', userId);
+
+    const usersCollection = getUsersCollection();
+    if (!usersCollection) {
+      return res.status(500).json({ success: false, error: 'Database connection error' });
+    }
+
+    // ✅ Remove progress field entirely
+    const result = await usersCollection.updateOne(
+      { _id: userId },
+      { $unset: { progress: "" } } // removes progress array cleanly
+    );
+
+    if (result.modifiedCount === 0) {
+      console.log('⚠️ No progress found or already empty');
+      return res.json({ success: true, message: 'No progress to reset' });
+    }
+
+    console.log('✅ Progress reset successful');
+    res.json({ success: true, message: 'Progress reset successfully' });
+  } catch (error) {
+    console.error('❌ Error in DELETE /api/progress/reset:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
 export default router;

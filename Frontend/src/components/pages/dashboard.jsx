@@ -738,56 +738,7 @@ export default function VirtueSenseDashboard() {
         },
     ] : [];
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
-            {/* Header */}
-            <div className="max-w-7xl mx-auto mb-6">
-                <div className="bg-white rounded-xl shadow-sm p-6">
-                    <div className="flex items-center justify-between flex-wrap gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-indigo-100 rounded-lg">
-                                    <Sparkles className="w-6 h-6 text-indigo-600" />
-                                </div>
-                                <h1 className="text-3xl font-bold text-gray-900">VirtueSense</h1>
-                            </div>
-                            <p className="text-gray-600">AI-Powered Interview Coach</p>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            {isRecording && (
-                                <div className="flex items-center gap-2 px-4 py-2 bg-red-50 rounded-lg border border-red-200">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                    <span className="text-sm text-red-700 font-medium">Recording</span>
-                                </div>
-                            )}
-
-                            <div className="text-right">
-                                <div className="text-sm text-gray-500 mb-1">Session Time</div>
-                                <div className="text-2xl font-mono font-bold text-gray-900">{formatTime(sessionTime)}</div>
-                            </div>
-
-                            {!isSessionActive ? (
-                                <button
-                                    onClick={startSession}
-                                    className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
-                                >
-                                    <Play size={20} />
-                                    Start Practice
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={stopSession}
-                                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors shadow-sm"
-                                >
-                                    <Square size={20} />
-                                    End Session
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">     
             <button 
             onClick={() => navigate(-1)} 
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"

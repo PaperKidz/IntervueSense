@@ -1,103 +1,93 @@
 // src/services/auth.service.js
 import API_CONFIG from "../config/api.config";
 
+const TOKEN_KEY = "token";
+const USER_KEY = "user";
+
 const authService = {
+  
   /**
    * Login user
    */
   async login(email, password) {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.LOGIN}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
-      });
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.LOGIN}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+          signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Store authentication data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         return data;
       }
 
-      // Handle error response
       throw {
         statusCode: response.status,
-        message: data.message || 'Login failed',
-        data: data,
+        message: data.message || "Login failed",
+        data,
       };
     } catch (error) {
-      // Handle network errors
-      if (error.name === 'TimeoutError') {
-        throw {
-          statusCode: 408,
-          message: 'Request timeout. Please try again.',
-        };
+      if (error.name === "TimeoutError") {
+        throw { statusCode: 408, message: "Request timeout. Please try again." };
       }
-      
-      if (error.statusCode) {
-        throw error;
-      }
+
+      if (error.statusCode) throw error;
 
       throw {
         statusCode: 0,
-        message: 'Network error. Please check your internet connection.',
-        error: error,
+        message: "Network error. Please check your connection.",
+        error,
       };
     }
   },
 
   /**
-   * Signup new user
+   * Signup user
    */
   async signup(name, email, password) {
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.SIGNUP}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name, email, password }),
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
-      });
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.SIGNUP}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, email, password }),
+          signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        }
+      );
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        // Store authentication data
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem(TOKEN_KEY, data.token);
+        localStorage.setItem(USER_KEY, JSON.stringify(data.user));
         return data;
       }
 
-      // Handle error response
       throw {
         statusCode: response.status,
-        message: data.message || 'Signup failed',
-        data: data,
+        message: data.message || "Signup failed",
+        data,
       };
     } catch (error) {
-      // Handle network errors
-      if (error.name === 'TimeoutError') {
-        throw {
-          statusCode: 408,
-          message: 'Request timeout. Please try again.',
-        };
+      if (error.name === "TimeoutError") {
+        throw { statusCode: 408, message: "Request timeout. Please try again." };
       }
-      
-      if (error.statusCode) {
-        throw error;
-      }
+
+      if (error.statusCode) throw error;
 
       throw {
         statusCode: 0,
-        message: 'Network error. Please check your internet connection.',
-        error: error,
+        message: "Network error. Please check your connection.",
+        error,
       };
     }
   },
@@ -106,30 +96,53 @@ const authService = {
    * Logout user
    */
   logout() {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
   },
 
   /**
    * Get stored token
    */
   getToken() {
-    return localStorage.getItem('token');
+    return localStorage.getItem(TOKEN_KEY);
   },
 
   /**
    * Get stored user
    */
   getUser() {
-    const user = localStorage.getItem('user');
+    const user = localStorage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
+  },
+
+  /**
+   * Decode JWT (to check expiry)
+   */
+  decodeToken(token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      return payload;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * Check if token is still valid (not expired)
+   */
+  isTokenValid() {
+    const token = this.getToken();
+    if (!token) return false;
+    const decoded = this.decodeToken(token);
+    if (!decoded || !decoded.exp) return false;
+    return Date.now() < decoded.exp * 1000;
   },
 
   /**
    * Check if user is authenticated
    */
   isAuthenticated() {
-    return !!this.getToken();
+    return this.isTokenValid();
   },
 
   /**
@@ -138,50 +151,43 @@ const authService = {
   async getUserProfile() {
     const token = this.getToken();
     if (!token) {
-      throw {
-        statusCode: 401,
-        message: 'No authentication token found',
-      };
+      throw { statusCode: 401, message: "No authentication token found" };
     }
 
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}/api/auth/user/profile`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
-      });
+      const response = await fetch(
+        `${API_CONFIG.BASE_URL}/api/auth/user/profile`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          signal: AbortSignal.timeout(API_CONFIG.TIMEOUT),
+        }
+      );
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
-        return data;
-      }
+      if (response.ok && data.success) return data;
 
       throw {
         statusCode: response.status,
-        message: data.message || 'Failed to fetch profile',
+        message: data.message || "Failed to fetch profile",
       };
     } catch (error) {
-      if (error.name === 'TimeoutError') {
-        throw {
-          statusCode: 408,
-          message: 'Request timeout. Please try again.',
-        };
+      if (error.name === "TimeoutError") {
+        throw { statusCode: 408, message: "Request timeout. Please try again." };
       }
-      
-      if (error.statusCode) {
-        throw error;
-      }
+
+      if (error.statusCode) throw error;
 
       throw {
         statusCode: 0,
-        message: 'Network error. Please check your internet connection.',
+        message: "Network error. Please check your internet connection.",
       };
     }
-  }
+  },
 };
 
 export default authService;

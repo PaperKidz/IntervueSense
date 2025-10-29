@@ -13,19 +13,18 @@ const ModuleDashboard = () => {
   const progressData = progress || {};
 
   const openPractice = (moduleId, sectionId, practiceId) => {
-    navigate(`/practice?module=${moduleId}&section=${encodeURIComponent(sectionId)}&practice=${practiceId}`);
+    // Practice questions -> dashboard
+    navigate(`/dashboard?module=${moduleId}&section=${encodeURIComponent(sectionId)}&practice=${practiceId}`);
   };
 
   const openTheory = (moduleId, sectionId) => {
+    // Theory lessons -> theory page
     navigate(`/theory?module=${moduleId}&section=${encodeURIComponent(sectionId)}`);
   };
 
   const selectedModuleIdFromUrl = searchParams.get('module');
   const [selectedModuleId, setSelectedModuleId] = useState(selectedModuleIdFromUrl || null);
-  const [expandedSections, setExpandedSections] = useState({ '1.1': true });
-
-  // static modules data
-  
+  const [expandedSections, setExpandedSections] = useState({});
 
   useEffect(() => {
     setSelectedModuleId(selectedModuleIdFromUrl || null);
@@ -41,36 +40,75 @@ const ModuleDashboard = () => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  
   const selectedModule = selectedModuleId ? getModuleById(selectedModuleId) : null;
-
-  // Helper function to check if this is the first theory (Module 1, Section 1.1)
-  const isFirstTheory = (moduleId, sectionId) => {
-    return moduleId === '1' && sectionId === '1.1';
-  };
 
   // Helper function to check if progress is empty
   const hasNoProgress = () => {
-    return !progress || Object.keys(progress).length === 0;
+    return !progress || progress.length === 0;
   };
 
-  // Modified getItemStatus wrapper that unlocks first theory when progress is 0
-  const getItemStatusWithFirstUnlock = (moduleId, sectionId, itemId, itemType) => {
-    
-    if (hasNoProgress()) {
-      // If no progress exists...
-      if (isFirstTheory(moduleId, sectionId) && itemType === 'theory') {
-        // ...and this is the very first theory lesson, make it available.
-        return 'available';
-      } else {
-        // ...for everything else (all other theories, all practice questions), lock it.
-        return 'locked';
-      }
-    }
-    
-    // If progress *does* exist, use the normal status check from the context.
-    return getItemStatus(moduleId, sectionId, itemId, itemType);
+  // Check if a section is fully completed (theory + all practices)
+  const isSectionFullyCompleted = (moduleId, section) => {
+    const theoryStatus = getItemStatus(moduleId, section.id, 'theory', 'theory');
+    if (theoryStatus !== 'completed') return false;
+
+    return section.practices.every(practice => {
+      const practiceStatus = getItemStatus(moduleId, section.id, practice.id, 'practice');
+      return practiceStatus === 'completed';
+    });
   };
+
+  // Check if a section should be unlocked
+  const isSectionUnlocked = (moduleId, sectionId) => {
+    // If no progress, only Module 1, Section 1.1 is unlocked
+    if (hasNoProgress()) {
+      return moduleId === '1' && sectionId === '1.1';
+    }
+
+    // Module 1, Section 1.1 is always unlocked
+    if (moduleId === '1' && sectionId === '1.1') {
+      return true;
+    }
+
+    const module = getModuleById(moduleId);
+    if (!module) return false;
+
+    const sections = module.sections;
+    const currentSectionIndex = sections.findIndex(s => s.id === sectionId);
+
+    if (currentSectionIndex === -1) return false;
+
+    // Check if it's the first section of a module (not module 1)
+    if (currentSectionIndex === 0) {
+      // Need to check if previous module is fully completed
+      const prevModuleId = String(Number(moduleId) - 1);
+      const prevModule = getModuleById(prevModuleId);
+      
+      if (!prevModule) return false;
+
+      // Check if all sections of previous module are completed
+      return prevModule.sections.every(section => 
+        isSectionFullyCompleted(prevModuleId, section)
+      );
+    }
+
+    // For subsequent sections in the same module, check if previous section is fully completed
+    const prevSection = sections[currentSectionIndex - 1];
+    return isSectionFullyCompleted(moduleId, prevSection);
+  };
+
+  // Set expanded sections based on unlock status when module is selected
+  useEffect(() => {
+    if (selectedModule) {
+      const newExpandedSections = {};
+      selectedModule.sections.forEach(section => {
+        const isUnlocked = isSectionUnlocked(selectedModule.id, section.id);
+        // Expand if unlocked and not fully completed
+        newExpandedSections[section.id] = isUnlocked && !isSectionFullyCompleted(selectedModule.id, section);
+      });
+      setExpandedSections(newExpandedSections);
+    }
+  }, [selectedModule?.id, progress]);
 
   const getModuleCompletion = (module) => {
     if (!module) return { completed: 0, total: 0, percentage: 0 };
@@ -80,12 +118,12 @@ const ModuleDashboard = () => {
 
     module.sections.forEach(section => {
       totalItems++;
-      const theoryStatus = getItemStatusWithFirstUnlock(module.id, section.id, 'theory', 'theory');
+      const theoryStatus = getItemStatus(module.id, section.id, 'theory', 'theory');
       if (theoryStatus === 'completed') completedItems++;
 
       section.practices.forEach(practice => {
         totalItems++;
-        const practiceStatus = getItemStatusWithFirstUnlock(module.id, section.id, practice.id);
+        const practiceStatus = getItemStatus(module.id, section.id, practice.id, 'practice');
         if (practiceStatus === 'completed') completedItems++;
       });
     });
@@ -126,32 +164,7 @@ const ModuleDashboard = () => {
 
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-xl font-semibold text-gray-900">VirtueSense</h1>
-                  <p className="text-sm text-gray-500">AI-Powered Interview Coach</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-semibold text-gray-900 mb-2">My Learning Journey</h2>
-            <p className="text-gray-600">Choose a module to begin your interview preparation</p>
-          </div>
-
           {/* Overall Progress */}
           <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -226,42 +239,12 @@ const ModuleDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-gray-900">VirtueSense</h1>
-                <p className="text-sm text-gray-500">AI-Powered Interview Coach</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Button */}
         <button onClick={backToModules} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm font-medium">Back to Modules</span>
         </button>
-
-        {/* Module Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-            <span>Learning Path</span>
-            <span>/</span>
-            <span className="text-gray-900 font-medium">Module {selectedModule.id}</span>
-          </div>
-          <h2 className="text-3xl font-semibold text-gray-900 mb-2">{selectedModule.title}</h2>
-          <p className="text-gray-600">{selectedModule.description}</p>
-        </div>
 
         {/* Progress Overview */}
         <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
@@ -282,51 +265,59 @@ const ModuleDashboard = () => {
         {/* Module Content */}
         <div className="space-y-3">
           {selectedModule.sections.map((section) => {
-            // Get theory status with first unlock logic
-            const theoryStatus = getItemStatusWithFirstUnlock(selectedModule.id, section.id, 'theory', 'theory');
+            const sectionUnlocked = isSectionUnlocked(selectedModule.id, section.id);
+            const theoryStatus = getItemStatus(selectedModule.id, section.id, 'theory', 'theory');
 
             return (
               <div key={section.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                 <button 
                   onClick={() => toggleSection(section.id)} 
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className={`w-full px-6 py-4 flex items-center justify-between transition-colors ${
+                    sectionUnlocked ? 'hover:bg-gray-50' : 'opacity-60'
+                  }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex items-center justify-center w-8 h-8 rounded bg-gray-100 text-sm font-semibold text-gray-700">{section.id}</div>
+                    <div className={`flex items-center justify-center w-8 h-8 rounded text-sm font-semibold ${
+                      sectionUnlocked ? 'bg-gray-100 text-gray-700' : 'bg-gray-50 text-gray-400'
+                    }`}>
+                      {section.id}
+                    </div>
                     <div className="text-left">
                       <h3 className="text-base font-semibold text-gray-900">Section {section.id}: {section.title}</h3>
                       <p className="text-sm text-gray-500">{section.practices.length + 1} lessons</p>
                     </div>
                   </div>
-                  <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections[section.id] ? 'rotate-180' : ''}`} />
+                  <div className="flex items-center gap-2">
+                    {!sectionUnlocked && <span className="text-xs text-gray-400 mr-2">Locked</span>}
+                    <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections[section.id] ? 'rotate-180' : ''}`} />
+                  </div>
                 </button>
 
                 {expandedSections[section.id] && (
                   <div className="border-t border-gray-200">
-                   {/* Theory */}
+                    {/* Theory */}
                     <div 
-                      onClick={() => theoryStatus === 'available' && openTheory(selectedModule.id, section.id)}
                       className={`px-6 py-4 transition-colors border-b border-gray-100 
-                        ${theoryStatus === 'available' ? 'cursor-pointer hover:bg-gray-50' : ''}
-                        ${theoryStatus === 'locked' ? 'opacity-60' : ''}
+                        ${sectionUnlocked && theoryStatus !== 'locked' ? 'hover:bg-gray-50' : ''}
+                        ${!sectionUnlocked || theoryStatus === 'locked' ? 'opacity-60' : ''}
                       `}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 flex-1">
                           <div className={`w-10 h-10 rounded flex items-center justify-center ${
                             theoryStatus === 'completed' ? 'bg-green-50' : 
-                            theoryStatus === 'available' ? 'bg-indigo-50' : 
+                            sectionUnlocked && theoryStatus === 'available' ? 'bg-indigo-50' : 
                             'bg-gray-100'
                           }`}>
                             {section.theory.type === 'video' ? 
                               <PlayCircle className={`w-5 h-5 ${
                                 theoryStatus === 'completed' ? 'text-green-600' : 
-                                theoryStatus === 'available' ? 'text-indigo-600' : 
+                                sectionUnlocked && theoryStatus === 'available' ? 'text-indigo-600' : 
                                 'text-gray-400'
                               }`} /> : 
                               <FileText className={`w-5 h-5 ${
                                 theoryStatus === 'completed' ? 'text-green-600' : 
-                                theoryStatus === 'available' ? 'text-indigo-600' : 
+                                sectionUnlocked && theoryStatus === 'available' ? 'text-indigo-600' : 
                                 'text-gray-400'
                               }`} />
                             }
@@ -336,32 +327,40 @@ const ModuleDashboard = () => {
                             <p className="text-xs text-gray-500">{section.theory.title} • {section.theory.duration}</p>
                           </div>
                         </div>
-                        {theoryStatus === 'completed' && <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />}
-                        {theoryStatus === 'available' && (
+                        {theoryStatus === 'completed' && (
+                          <div className="flex items-center gap-3">
+                            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                            <button 
+                              onClick={() => openTheory(selectedModule.id, section.id)}
+                              className="px-4 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                            >
+                              Review
+                            </button>
+                          </div>
+                        )}
+                        {sectionUnlocked && theoryStatus === 'available' && (
                           <button 
-                            onClick={(e) => {
-                              e.stopPropagation(); 
-                              openTheory(selectedModule.id, section.id);
-                            }}
+                            onClick={() => openTheory(selectedModule.id, section.id)}
                             className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors flex-shrink-0"
                           >
                             Start
                           </button>
                         )}
-                        {theoryStatus === 'locked' && <span className="text-xs text-gray-400 flex-shrink-0">Locked</span>}
+                        {(!sectionUnlocked || theoryStatus === 'locked') && <span className="text-xs text-gray-400 flex-shrink-0">Locked</span>}
                       </div>
                     </div>
 
                     {/* Practice Questions */}
                     {section.practices.map((practice, practiceIndex) => {
-                      const practiceStatus = getItemStatusWithFirstUnlock(selectedModule.id, section.id, practice.id);
-                      const isClickable = practiceStatus !== 'locked';
+                      const practiceStatus = getItemStatus(selectedModule.id, section.id, practice.id, 'practice');
+                      const isClickable = sectionUnlocked && practiceStatus !== 'locked';
 
                       return (
                         <div 
                           key={practice.id} 
-                          onClick={() => isClickable && openPractice(selectedModule.id, section.id, practice.id)}
-                          className={`px-6 py-4 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 ${isClickable ? 'cursor-pointer' : 'cursor-not-allowed opacity-60'}`}
+                          className={`px-6 py-4 transition-colors border-b border-gray-100 last:border-b-0 ${
+                            isClickable ? 'hover:bg-gray-50' : 'opacity-60'
+                          }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-4 flex-1">
@@ -386,14 +385,30 @@ const ModuleDashboard = () => {
                                 </div>
                               </div>
                             </div>
-                            {practiceStatus === 'completed' && <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />}
+                            {practiceStatus === 'completed' && (
+                              <div className="flex items-center gap-3">
+                                <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                                <button 
+                                  onClick={() => openPractice(selectedModule.id, section.id, practice.id)}
+                                  className="px-4 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded hover:bg-gray-200 transition-colors flex-shrink-0"
+                                >
+                                  Review
+                                </button>
+                              </div>
+                            )}
                             {practiceStatus === 'in-progress' && (
-                              <button className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors flex-shrink-0">
+                              <button 
+                                onClick={() => openPractice(selectedModule.id, section.id, practice.id)}
+                                className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors flex-shrink-0"
+                              >
                                 Continue
                               </button>
                             )}
                             {practiceStatus === 'available' && (
-                              <button className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors flex-shrink-0">
+                              <button 
+                                onClick={() => openPractice(selectedModule.id, section.id, practice.id)}
+                                className="px-4 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded hover:bg-indigo-700 transition-colors flex-shrink-0"
+                              >
                                 Start
                               </button>
                             )}

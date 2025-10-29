@@ -1,74 +1,72 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import Login from "./components/Auth/Login";
-import Signup from "./components/Auth/Signup";
-import ForgotPassword from "./components/Auth/ForgotPassword";
-import Home from "./components/pages/Home";
-import Dashboard from "./components/pages/dashboard";
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import Login from './components/Auth/Login';
+import Signup from './components/Auth/Signup';
+import Home from './components/pages/Home';
+import Dashboard from './components/pages/Dashboard';
+import MainDash from './components/pages/Maindash';
+import TheoryPage from './components/pages/TheoryPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import { ProgressProvider } from './contexts/ProgressContext';
 import NavBar from './components/shared/NavBar';
 import Footer from './components/shared/Footer';
-import ModuleDashboard from "./components/pages/Maindash";
-import ProtectedRoute from "./components/ProtectedRoute";
-import { ProgressProvider } from './contexts/ProgressContext';
-import TheoryPage from "./components/pages/TheoryPage"; 
+import authService from './services/auth.service';
 
 function App() {
-  const location = useLocation();
-  
-  // Pages where you DON'T want NavBar/Footer (auth pages)
-  const hideNavAndFooter = ['/login', '/signup', '/forgot-password'].includes(location.pathname);
+  const isLoggedIn = authService?.isAuthenticated?.() || !!localStorage.getItem('token');
+  const location = useLocation(); // ✅ Use React Router's useLocation hook
+
+  // ✅ Define auth pages where Nav/Footer should be hidden
+  const authPages = ['/login', '/signup', '/forgot-password'];
+  const hideNavAndFooter = authPages.includes(location.pathname);
 
   return (
     <ProgressProvider>
-      {/* Show NavBar on all pages EXCEPT auth pages */}
+      {/* ✅ Conditionally render NavBar */}
       {!hideNavAndFooter && <NavBar />}
-      
-      <Routes>
-        {/* ✅ Public Routes (No NavBar/Footer) */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* ✅ Protected Routes (With NavBar/Footer) */}
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/practice" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        
-        <Route
-          path="/maindash"
-          element={
-            <ProtectedRoute>
-              <ModuleDashboard />
-            </ProtectedRoute>
-          }
-        />
+      <main className="min-h-screen">
+        <Routes>
+          {/* Public Routes */}
+          <Route
+            path="/"
+            element={<Navigate to={isLoggedIn ? '/maindash' : '/home'} replace />}
+          />
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-        <Route
-          path="/theory"
-          element={
-            <ProtectedRoute>
-              <TheoryPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected Routes */}
+          <Route
+            path="/maindash"
+            element={
+              <ProtectedRoute>
+                <MainDash />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/theory"
+            element={
+              <ProtectedRoute>
+                <TheoryPage />
+              </ProtectedRoute>
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-      
-      {/* Show Footer on all pages EXCEPT auth pages */}
+          {/* Catch-all */}
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+      </main>
+
+      {/* ✅ Conditionally render Footer */}
       {!hideNavAndFooter && <Footer />}
     </ProgressProvider>
   );
