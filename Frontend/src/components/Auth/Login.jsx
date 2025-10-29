@@ -19,7 +19,7 @@ export default function Login() {
         navigate('/maindash', { replace: true });
       }
     } catch (e) {
-      // ignore
+
     }
   }, [navigate]);
 

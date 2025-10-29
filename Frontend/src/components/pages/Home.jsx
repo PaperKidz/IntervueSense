@@ -7,11 +7,14 @@ import {
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Replace these with your actual navigation function from React Router
-  // Example: const navigate = useNavigate();
+  // Fixed navigation function with proper routing
   const handleNavigate = (path) => {
-    // For now, using window.location
-    // Replace with: navigate(path);
+    console.log('Navigating to:', path); // Debug log
+    
+    // For React Router, uncomment this and import useNavigate:
+    // navigate(path);
+    
+    // Temporary solution - will work once routes are set up
     window.location.href = path;
   };
 
@@ -98,73 +101,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            {/* Logo */}
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigate('/')}>
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Sparkles className="w-6 h-6 text-indigo-600" />
-              </div>
-              <span className="text-2xl font-bold text-gray-900">VirtueSense</span>
-            </div>
+      
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#features" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Features</a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">How It Works</a>
-              <a href="#instructors" className="text-gray-700 hover:text-indigo-600 font-medium transition-colors">Instructors</a>
-
-              <button
-                onClick={() => handleNavigate('/login')}
-                className="text-indigo-600 hover:text-indigo-700 font-semibold transition-colors"
-              >
-                Sign In
-              </button>
-              <button
-                onClick={() => handleNavigate('/signup')}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors shadow-sm"
-              >
-                Create Account
-              </button>
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 border-t">
-              <div className="flex flex-col gap-4">
-                <a href="#features" className="text-gray-700 hover:text-indigo-600 font-medium">Features</a>
-                <a href="#how-it-works" className="text-gray-700 hover:text-indigo-600 font-medium">How It Works</a>
-                <a href="#instructors" className="text-gray-700 hover:text-indigo-600 font-medium">Instructors</a>
-                <button
-                  onClick={() => handleNavigate('/login')}
-                  className="text-indigo-600 hover:text-indigo-700 font-semibold text-left"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => handleNavigate('/signup')}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-semibold"
-                >
-                  Create Account
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Hero Section - REPLACED with an inline SVG character (no external image) */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 opacity-10"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
@@ -183,14 +122,14 @@ export default function Home() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
                 <button
                   onClick={() => handleNavigate('/signup')}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors shadow-lg hover:shadow-xl"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-105"
                 >
                   Get Started
                   <ChevronRight size={20} />
                 </button>
                 <button
                   onClick={() => handleNavigate('/dashboard')}
-                  className="bg-white hover:bg-gray-50 text-indigo-600 px-8 py-4 rounded-lg font-semibold border-2 border-indigo-600 transition-colors"
+                  className="bg-white hover:bg-gray-50 text-indigo-600 px-8 py-4 rounded-lg font-semibold border-2 border-indigo-600 transition-all cursor-pointer transform hover:scale-105"
                 >
                   Try Demo
                 </button>
@@ -200,7 +139,6 @@ export default function Home() {
             {/* Inline SVG Character */}
             <div className="relative flex justify-center">
               <div className="w-80 h-80 lg:w-[420px] lg:h-[420px]">
-                {/* SVG: original, responsive, animated via SMIL (works in modern browsers) */}
                 <svg
                   role="img"
                   aria-label="Illustration of a person learning with a laptop and AI sparkles"
@@ -222,14 +160,11 @@ export default function Home() {
                     </filter>
                   </defs>
 
-                  {/* floating group */}
                   <g id="floatGroup" transform="translate(0,0)">
                     <animateTransform attributeName="transform" type="translate" values="0 0; 0 -12; 0 0" dur="4s" repeatCount="indefinite" />
 
-                    {/* Ground / desk */}
                     <rect x="40" y="300" width="320" height="18" rx="6" fill="#EEF2FF" />
 
-                    {/* Laptop */}
                     <g transform="translate(120,210)">
                       <rect x="-70" y="20" width="140" height="8" rx="2" fill="#E6E9FF" />
                       <rect x="-60" y="-6" width="120" height="70" rx="8" fill="url(#gradLaptop)" filter="url(#softShadow)" />
@@ -237,34 +172,20 @@ export default function Home() {
                       <rect x="-30" y="40" width="60" height="6" rx="2" fill="#EEF2FF" />
                     </g>
 
-                    {/* Body */}
                     <g transform="translate(200,180)">
-                      {/* legs */}
                       <rect x="-36" y="82" width="24" height="36" rx="6" fill="#4C51BF" />
                       <rect x="12" y="82" width="24" height="36" rx="6" fill="#4C51BF" />
-
-                      {/* torso */}
                       <rect x="-50" y="20" width="100" height="70" rx="18" fill="url(#gradBody)" />
-
-                      {/* arms (one resting near laptop) */}
                       <path d="M -48 44 q -10 8 -6 20 q 6 14 24 6" fill="#7C3AED" opacity="0.95" transform="translate(-6,0) rotate(-10)" />
                       <path d="M 48 44 q 10 8 6 20 q -6 14 -24 6" fill="#7C3AED" opacity="0.95" transform="translate(6,0) rotate(10)" />
-
-                      {/* head */}
                       <circle cx="0" cy="-10" r="28" fill="#FFD7A8" />
-                      {/* hair */}
                       <path d="M -22 -18 q 22 -26 44 0 q -26 -6 -44 6" fill="#2B2A4A" />
-
-                      {/* smile */}
                       <path d="M -10 -2 q 10 12 20 0" stroke="#3F3D56" strokeWidth="3" fill="none" strokeLinecap="round" />
-
-                      {/* cheek spark */}
                       <circle cx="14" cy="-2" r="3" fill="#FFB6C1">
                         <animate attributeName="opacity" values="0;1;0" dur="2.2s" repeatCount="indefinite" />
                       </circle>
                     </g>
 
-                    {/* AI sparkles floating around */}
                     <g>
                       <circle cx="260" cy="110" r="6" fill="#FDE68A" opacity="0.9">
                         <animate attributeName="cy" values="110;92;110" dur="3s" repeatCount="indefinite" />
@@ -279,24 +200,19 @@ export default function Home() {
                         <animate attributeName="opacity" values="0.25;1;0.25" dur="3.6s" repeatCount="indefinite" begin="0.6s" />
                       </circle>
 
-                      {/* little star sparkle */}
                       <g transform="translate(280,90)">
                         <path d="M0 -6 L1.8 -1 L6 -1 L2.6 1 L4 6 L0 3 L-4 6 L-2.6 1 L-6 -1 L-1.8 -1 Z" fill="#FFD166" opacity="0.95">
                           <animateTransform attributeName="transform" type="rotate" values="0 0 0; 20 0 0; 0 0 0" dur="5s" repeatCount="indefinite" />
                         </path>
                       </g>
                     </g>
-
                   </g>
-
                 </svg>
               </div>
 
-              {/* decorative floating blobs */}
               <div className="absolute -top-4 -right-4 w-24 h-24 bg-yellow-400 rounded-full opacity-20"></div>
               <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-pink-400 rounded-full opacity-20"></div>
             </div>
-
           </div>
         </div>
       </section>
@@ -435,7 +351,7 @@ export default function Home() {
           </p>
           <button
             onClick={() => handleNavigate('/signup')}
-            className="bg-white hover:bg-gray-100 text-indigo-600 px-10 py-4 rounded-lg font-bold text-lg transition-colors shadow-xl hover:shadow-2xl inline-flex items-center gap-2"
+            className="bg-white hover:bg-gray-100 text-indigo-600 px-10 py-4 rounded-lg font-bold text-lg transition-all shadow-xl hover:shadow-2xl inline-flex items-center gap-2 cursor-pointer transform hover:scale-105"
           >
             Start Your Journey
             <ChevronRight size={24} />
@@ -467,59 +383,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-indigo-600 rounded-lg">
-                  <Sparkles className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-xl font-bold text-white">VirtueSense</span>
-              </div>
-              <p className="text-gray-400 text-sm">
-                AI-powered interview coaching platform for career success.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Overview</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Courses</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Instructors</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Pricing</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Press</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">News</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-white font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-indigo-400 transition-colors">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-800 pt-8 text-center text-sm">
-            <p>&copy; 2025 VirtueSense. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
