@@ -6,9 +6,7 @@ const USER_KEY = "user";
 
 const authService = {
   
-  /**
-   * Login user
-   */
+
   async login(email, password) {
     try {
       const response = await fetch(
