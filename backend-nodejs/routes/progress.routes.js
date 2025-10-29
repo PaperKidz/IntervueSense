@@ -18,20 +18,65 @@ const getUserId = (req) => {
 router.post('/complete', async (req, res) => {
   try {
     console.log('📥 POST /api/progress/complete');
-    console.log('Body:', req.body);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const { moduleId, sectionId, type, data } = req.body;
     
-    // Validate required fields
-    if (!moduleId || !sectionId || !type) {
+    // ✅ Enhanced validation
+    if (!moduleId) {
+      console.error('❌ Missing moduleId');
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: moduleId, sectionId, type'
+        error: 'Missing required field: moduleId'
+      });
+    }
+    
+    if (!sectionId) {
+      console.error('❌ Missing sectionId');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: sectionId'
+      });
+    }
+    
+    if (!type) {
+      console.error('❌ Missing type');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: type'
+      });
+    }
+    
+    // ✅ Validate type
+    if (!['theory', 'practice'].includes(type)) {
+      console.error('❌ Invalid type:', type);
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid type. Must be "theory" or "practice"'
+      });
+    }
+    
+    // ✅ For practice, validate practiceId exists
+    if (type === 'practice' && !data?.practiceId) {
+      console.error('❌ Missing practiceId for practice type');
+      return res.status(400).json({
+        success: false,
+        error: 'Missing practiceId in data for practice type'
       });
     }
     
     const userId = getUserId(req);
+    console.log('👤 User ID:', userId);
+    
     const usersCollection = getUsersCollection();
+    
+    if (!usersCollection) {
+      console.error('❌ Database collection not available');
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection error'
+      });
+    }
     
     // Create progress entry
     const progressEntry = {
@@ -42,18 +87,40 @@ router.post('/complete', async (req, res) => {
       data: data || {}
     };
     
+    // For practice questions, ensure practiceId is stored
+    if (type === 'practice' && data?.practiceId) {
+      progressEntry.data.practiceId = String(data.practiceId);
+    }
+    
+    console.log('📝 Progress entry to save:', JSON.stringify(progressEntry, null, 2));
+    
     // Check if this progress already exists
     const user = await usersCollection.findOne({ _id: userId });
+    console.log('👤 User found:', user ? 'Yes' : 'No');
     
     if (user && user.progress) {
       // Check for duplicate
-      const existingIndex = user.progress.findIndex(
-        p => p.moduleId === progressEntry.moduleId && 
-             p.sectionId === progressEntry.sectionId && 
-             p.type === progressEntry.type
-      );
+      let existingIndex = -1;
+      
+      if (type === 'practice') {
+        // For practice, match by module, section, type AND practiceId
+        existingIndex = user.progress.findIndex(
+          p => p.moduleId === progressEntry.moduleId && 
+               p.sectionId === progressEntry.sectionId && 
+               p.type === progressEntry.type &&
+               String(p.data?.practiceId || '') === String(data.practiceId || '')
+        );
+      } else {
+        // For theory, match by module, section, and type
+        existingIndex = user.progress.findIndex(
+          p => p.moduleId === progressEntry.moduleId && 
+               p.sectionId === progressEntry.sectionId && 
+               p.type === progressEntry.type
+        );
+      }
       
       if (existingIndex >= 0) {
+        console.log('🔄 Updating existing progress at index:', existingIndex);
         // Update existing progress
         await usersCollection.updateOne(
           { _id: userId },
@@ -61,6 +128,7 @@ router.post('/complete', async (req, res) => {
         );
         console.log('✅ Progress updated');
       } else {
+        console.log('➕ Adding new progress entry');
         // Add new progress
         await usersCollection.updateOne(
           { _id: userId },
@@ -69,6 +137,7 @@ router.post('/complete', async (req, res) => {
         console.log('✅ Progress added');
       }
     } else {
+      console.log('👤 Creating new user with progress');
       // Create new user with progress
       await usersCollection.updateOne(
         { _id: userId },
@@ -90,9 +159,11 @@ router.post('/complete', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error in POST /api/progress/complete:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -103,11 +174,22 @@ router.get('/my', async (req, res) => {
     console.log('📥 GET /api/progress/my');
     
     const userId = getUserId(req);
+    console.log('👤 User ID:', userId);
+    
     const usersCollection = getUsersCollection();
+    
+    if (!usersCollection) {
+      console.error('❌ Database collection not available');
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection error'
+      });
+    }
     
     const user = await usersCollection.findOne({ _id: userId });
     
     if (!user || !user.progress) {
+      console.log('ℹ️  No progress found for user');
       return res.status(200).json({
         success: true,
         progress: [] // Return empty array for new users
@@ -122,9 +204,11 @@ router.get('/my', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error in GET /api/progress/my:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
@@ -136,11 +220,23 @@ router.get('/module/:moduleId', async (req, res) => {
     
     const { moduleId } = req.params;
     const userId = getUserId(req);
+    console.log('👤 User ID:', userId);
+    console.log('📦 Module ID:', moduleId);
+    
     const usersCollection = getUsersCollection();
+    
+    if (!usersCollection) {
+      console.error('❌ Database collection not available');
+      return res.status(500).json({
+        success: false,
+        error: 'Database connection error'
+      });
+    }
     
     const user = await usersCollection.findOne({ _id: userId });
     
     if (!user || !user.progress) {
+      console.log('ℹ️  No progress found for user');
       return res.status(200).json({
         success: true,
         progress: []
@@ -160,9 +256,11 @@ router.get('/module/:moduleId', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error in GET /api/progress/module/:moduleId:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
-      error: 'Internal server error'
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });

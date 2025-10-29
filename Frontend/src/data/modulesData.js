@@ -8,59 +8,135 @@ export const modules = [
       {
         id: '1.1',
         title: 'Tell Me About Yourself',
-        // We don't need the 'id: t1' anymore
-        theory: { title: 'Understanding Personal Narratives', duration: '12 min', type: 'video', videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' },
+        theory: { 
+          title: 'Understanding Personal Narratives', 
+          duration: '12 min', 
+          type: 'video', 
+          videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' 
+        },
         practices: [
-          { id: 'p1', title: 'Craft Your Story', duration: '120s' },
-          { id: 'p2', title: 'Strengths Showcase', duration: '120s' },
-          { id: 'p3', title: 'Career Journey', duration: '120s' }
+          { 
+            id: 'p1', 
+            title: 'Craft Your Story', 
+            duration: '120s',
+            description: 'Practice structuring your personal introduction'
+          },
+          { 
+            id: 'p2', 
+            title: 'Strengths Showcase', 
+            duration: '120s',
+            description: 'Demonstrate your key strengths with examples'
+          },
+          { 
+            id: 'p3', 
+            title: 'Career Journey', 
+            duration: '120s',
+            description: 'Articulate your career path and decisions'
+          }
         ]
       },
       {
         id: '1.2',
         title: 'Behavioral Questions',
-        // We don't need the 'id: t2' anymore
-        theory: { title: 'STAR Method Mastery', duration: '15 min', type: 'text', content: 'The STAR method is...' },
+        theory: { 
+          title: 'STAR Method Mastery', 
+          duration: '15 min', 
+          type: 'text', 
+          content: 'The STAR method (Situation, Task, Action, Result) is a structured approach to answering behavioral interview questions...' 
+        },
         practices: [
-          { id: 'p4', title: 'Conflict Resolution', duration: '120s' },
-          { id: 'p5', title: 'Leadership Moments', duration: '120s' },
-          { id: 'p6', title: 'Failure & Growth', duration: '120s' }
+          { 
+            id: 'p4', 
+            title: 'Conflict Resolution', 
+            duration: '120s',
+            description: 'Handle team conflicts professionally'
+          },
+          { 
+            id: 'p5', 
+            title: 'Leadership Moments', 
+            duration: '120s',
+            description: 'Show leadership skills in action'
+          },
+          { 
+            id: 'p6', 
+            title: 'Failure & Growth', 
+            duration: '120s',
+            description: 'Turn setbacks into learning experiences'
+          }
         ]
-      },
-      // ... (rest of your sections)
+      }
     ]
   },
-    {id: '2',
-    title: 'Introduction to Interviews',
-    description: 'Master the basics of personal and behavioral interview rounds',
+  {
+    id: '2',
+    title: 'Advanced Interview Techniques',
+    description: 'Deepen your interview skills with advanced scenarios',
     sections: [
       {
-        id: '1.1',
-        title: 'Tell Me About Yourself',
-        // We don't need the 'id: t1' anymore
-        theory: { title: 'Understanding Personal Narratives', duration: '12 min', type: 'video', videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ' },
+        id: '2.1',
+        title: 'Personal Branding',
+        theory: { 
+          title: 'Crafting Your Unique Value Proposition', 
+          duration: '14 min', 
+          type: 'video', 
+          videoUrl: 'https://www.youtube.com/embed/example2' 
+        },
         practices: [
-          { id: 'p1', title: 'Craft Your Story', duration: '120s' },
-          { id: 'p2', title: 'Strengths Showcase', duration: '120s' },
-          { id: 'p3', title: 'Career Journey', duration: '120s' }
+          { 
+            id: 'p1', 
+            title: 'Your Unique Story', 
+            duration: '120s',
+            description: 'Differentiate yourself from other candidates'
+          },
+          { 
+            id: 'p2', 
+            title: 'Value Proposition', 
+            duration: '120s',
+            description: 'Articulate what makes you unique'
+          },
+          { 
+            id: 'p3', 
+            title: 'Future Vision', 
+            duration: '120s',
+            description: 'Share your career aspirations'
+          }
         ]
       },
       {
-        id: '1.2',
-        title: 'Behavioral Questions',
-        // We don't need the 'id: t2' anymore
-        theory: { title: 'STAR Method Mastery', duration: '15 min', type: 'text', content: 'The STAR method is...' },
+        id: '2.2',
+        title: 'Complex Scenarios',
+        theory: { 
+          title: 'Handling Difficult Questions', 
+          duration: '16 min', 
+          type: 'text', 
+          content: 'Advanced techniques for handling complex behavioral scenarios...' 
+        },
         practices: [
-          { id: 'p4', title: 'Conflict Resolution', duration: '120s' },
-          { id: 'p5', title: 'Leadership Moments', duration: '120s' },
-          { id: 'p6', title: 'Failure & Growth', duration: '120s' }
+          { 
+            id: 'p4', 
+            title: 'Difficult Stakeholders', 
+            duration: '120s',
+            description: 'Navigate challenging relationships'
+          },
+          { 
+            id: 'p5', 
+            title: 'Critical Decisions', 
+            duration: '120s',
+            description: 'Make tough calls under pressure'
+          },
+          { 
+            id: 'p6', 
+            title: 'Change Management', 
+            duration: '120s',
+            description: 'Adapt to organizational changes'
+          }
         ]
-      },
-      // ... (rest of your sections)
-    ]},
+      }
+    ]
+  }
 ];
 
-// Helper functions (keep these)
+// Helper functions
 export const getModuleById = (moduleId) => modules.find(m => m.id === moduleId) || null;
 
 export const getSectionById = (moduleId, sectionId) => {
@@ -73,19 +149,21 @@ export const getTheoryBySection = (moduleId, sectionId) => {
   return section?.theory || null;
 };
 
-// ... (keep any other helpers)
+export const getPracticeById = (moduleId, sectionId, practiceId) => {
+  const section = getSectionById(moduleId, sectionId);
+  return section?.practices.find(p => p.id === practiceId) || null;
+};
 
-// 1. --- THIS IS THE FIX ---
-// This creates a flat list of ALL items in the entire course, in order.
-// We will now *always* use the string 'theory' as the itemId for theory lessons.
+// This creates a flat list of ALL items in the entire course, in order
 export const allItems = modules.flatMap(module =>
   module.sections.flatMap(section => [
     // Add the theory item
     { 
       moduleId: module.id, 
       sectionId: section.id, 
-      itemId: 'theory', // <-- THIS IS THE FIX
-      itemType: 'theory' 
+      itemId: 'theory',
+      itemType: 'theory',
+      title: section.theory.title
     },
     // Add all practice items
     ...section.practices.map(practice => ({
@@ -93,7 +171,7 @@ export const allItems = modules.flatMap(module =>
       sectionId: section.id,
       itemId: practice.id,
       itemType: 'practice',
+      title: practice.title
     })),
   ])
 );
-

@@ -81,13 +81,41 @@ export const ProgressProvider = ({ children }) => {
       const prevSectionCompleted = checkPreviousSectionCompleted(modId, secId);
       return prevSectionCompleted ? 'available' : 'locked';
     } else {
-      // Practice is unlocked if the theory of the same section is completed
+      // Practice questions unlock one by one
+      // First practice unlocks after theory
+      // Subsequent practices unlock after previous practice is completed
+      
       const theoryCompleted = progress.some(p => 
         String(p.moduleId) === modId && 
         String(p.sectionId) === secId && 
         p.type === 'theory'
       );
-      return theoryCompleted ? 'available' : 'locked';
+      
+      if (!theoryCompleted) {
+        return 'locked'; // Theory must be completed first
+      }
+
+      // Get all completed practices in this section
+      const completedPractices = progress.filter(p => 
+        String(p.moduleId) === modId && 
+        String(p.sectionId) === secId && 
+        p.type === 'practice'
+      ).map(p => String(p.data?.practiceId || ''));
+
+      // Check if this is the first practice or if previous practice is completed
+      // Assuming practice IDs are like 'p1', 'p2', 'p3'
+      const practiceNumber = parseInt(itemId.replace(/\D/g, '')) || 1;
+      
+      if (practiceNumber === 1) {
+        // First practice is available after theory
+        return 'available';
+      }
+      
+      // For subsequent practices, check if previous practice is completed
+      const prevPracticeId = `p${practiceNumber - 1}`;
+      const prevCompleted = completedPractices.includes(prevPracticeId);
+      
+      return prevCompleted ? 'available' : 'locked';
     }
   };
 

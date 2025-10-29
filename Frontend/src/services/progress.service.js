@@ -13,6 +13,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     console.log('API Request:', config.method.toUpperCase(), config.url);
+    console.log('Request Data:', config.data);
     return config;
   },
   (error) => {
@@ -22,7 +23,10 @@ api.interceptors.request.use(
 
 // ✅ Response interceptor (optional - for error handling)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log('API Response:', response.status, response.data);
+    return response;
+  },
   (error) => {
     console.error('API Error:', error.response?.status, error.response?.data);
     return Promise.reject(error);
@@ -45,10 +49,10 @@ const progressService = {
   completeTheory: async (moduleId, sectionId, data = {}) => {
     try {
       const response = await api.post('/progress/complete', {
-        moduleId,
-        sectionId,
+        moduleId: String(moduleId),
+        sectionId: String(sectionId),
         type: 'theory',
-        ...data
+        data
       });
       return response.data;
     } catch (error) {
@@ -57,15 +61,22 @@ const progressService = {
     }
   },
 
-  // Complete a practice section
-  completePractice: async (moduleId, sectionId, data = {}) => {
+  // ✅ FIXED: Complete a practice section with practiceId parameter
+  completePractice: async (moduleId, sectionId, practiceId, sessionData = {}) => {
     try {
+      console.log('completePractice called with:', { moduleId, sectionId, practiceId, sessionData });
+      
       const response = await api.post('/progress/complete', {
-        moduleId,
-        sectionId,
+        moduleId: String(moduleId),
+        sectionId: String(sectionId),
         type: 'practice',
-        ...data
+        data: {
+          practiceId: String(practiceId), // ✅ Include practiceId in data
+          ...sessionData // ✅ Spread session data (scores, duration, etc.)
+        }
       });
+      
+      console.log('completePractice response:', response.data);
       return response.data;
     } catch (error) {
       console.error('completePractice error:', error);

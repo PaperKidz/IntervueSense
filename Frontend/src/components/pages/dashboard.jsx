@@ -5,32 +5,26 @@ import {
     RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, PieChart, Pie, Cell
 } from 'recharts';
 import {
-    Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw,ArrowLeft
+    Sparkles, Play, Square, MessageSquare, VideoOff, Camera, CheckCircle, TrendingUp, RotateCcw, ArrowLeft
 } from 'lucide-react';
 
 import API_CONFIG from "../../config/api.config";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useProgress } from '../../contexts/ProgressContext';
-
-
-
-
+import { getQuestionByIds } from '../../data/questionsData'; // ✅ Import questions data
 
 export default function VirtueSenseDashboard() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { completePractice } = useProgress();
-    // Get practice info from URL
-        const moduleId = searchParams.get('module');
-        const sectionId = searchParams.get('section');
-        const practiceId = searchParams.get('practice');
-    const interviewQuestions = [
-        {
-            id: 1,
-            question: "Tell me about yourself and your background.",
-            expectedDuration: 120,
-        },
-    ];
+    
+    const moduleId = searchParams.get('module');
+    const sectionId = searchParams.get('section');
+    const practiceId = searchParams.get('practice');
+
+    // ✅ Get the current question from the questions database
+    const currentQuestion = getQuestionByIds(moduleId, sectionId, practiceId);
+    const interviewQuestions = [currentQuestion];
 
     const [isSessionActive, setIsSessionActive] = useState(false);
     const [sessionTime, setSessionTime] = useState(0);
@@ -65,6 +59,7 @@ export default function VirtueSenseDashboard() {
     const continuousRecordingRef = useRef(null);
     const recentTranscriptsRef = useRef([]);
     const analysisIntervalRef = useRef(null);
+    const sessionActiveRef = useRef(false);
 
     const emotionColors = {
         happy: '#10B981',
@@ -75,6 +70,21 @@ export default function VirtueSenseDashboard() {
         disgust: '#06B6D4',
         neutral: '#9CA3AF'
     };
+
+    // ✅ DEFINE calculateMetrics EARLY - before it's used
+    const calculateMetrics = useCallback(() => {
+        if (!smoothedEmotions?.emotions) return { confidence: 0, engagement: 0, composure: 0 };
+
+        const e = smoothedEmotions.emotions;
+        const positive = (e.happy || 0) + (e.neutral || 0) * 0.7;
+        const negative = (e.fear || 0) + (e.sad || 0) + (e.angry || 0);
+
+        const confidence = Math.max(0, Math.min(100, positive * 1.2 - (negative * 0.3)));
+        const engagement = Math.max(0, Math.min(100, ((e.neutral || 0) * 0.9 + (e.happy || 0)) * 1.1));
+        const composure = Math.max(0, Math.min(100, 100 - (negative * 0.4)));
+
+        return { confidence, engagement, composure };
+    }, [smoothedEmotions]);
 
     const calculateSimilarity = useCallback((str1, str2) => {
         const longer = str1.length > str2.length ? str1 : str2;
@@ -110,14 +120,12 @@ export default function VirtueSenseDashboard() {
     const isDuplicate = useCallback((newText) => {
         const SIMILARITY_THRESHOLD = 0.75;
         const recent = recentTranscriptsRef.current.slice(-3);
-
         const newLower = newText.toLowerCase().trim();
         const newWords = new Set(newLower.split(/\s+/));
 
         for (const oldText of recent) {
             const oldLower = oldText.toLowerCase().trim();
             const similarity = calculateSimilarity(newLower, oldLower);
-
             const isNewInOld = oldLower.includes(newLower);
             const isOldInNew = newLower.includes(oldLower);
 
@@ -157,18 +165,291 @@ export default function VirtueSenseDashboard() {
         setWebcamActive(false);
     }, []);
 
-    useEffect(() => {
-        return () => {
-            stopWebcam();
-            if (continuousRecordingRef.current?.intervalId) {
-                clearInterval(continuousRecordingRef.current.intervalId);
+    const smoothEmotions = (newEmotions) => {
+        const historyLength = 5;
+        emotionHistoryRef.current.push(newEmotions);
+
+        if (emotionHistoryRef.current.length > historyLength) {
+            emotionHistoryRef.current.shift();
+        }
+
+        const averaged = {};
+        const emotionKeys = Object.keys(newEmotions);
+
+        emotionKeys.forEach(emotion => {
+            const sum = emotionHistoryRef.current.reduce((acc, curr) => acc + (curr[emotion] || 0), 0);
+            averaged[emotion] = sum / emotionHistoryRef.current.length;
+        });
+
+        return averaged;
+    };
+
+    const analyzeVoiceChunk = useCallback(async (base64Audio, transcript, audioBlobSize) => {
+        if (!sessionActiveRef.current) {
+            return;
+        }
+        
+        try {
+            const estimatedDuration = (audioBlobSize / 1024) * 0.1;
+
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_VOICE}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    audio: base64Audio,
+                    transcript: transcript,
+                    duration: estimatedDuration
+                }),
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
-            if (analysisIntervalRef.current) {
-                clearInterval(analysisIntervalRef.current);
+            
+            const data = await response.json();
+            
+            if (data.success && sessionActiveRef.current) {
+                setVoiceAnalysis(data);
             }
-            continuousRecordingRef.current = null;
+        } catch (err) {
+            console.error('❌ Voice analysis error:', err);
+        }
+    }, []);
+
+    const transcribeAudio = useCallback(async (audioBlob, chunkId) => {
+        if (!sessionActiveRef.current) {
+            return;
+        }
+
+        try {
+            const reader = new FileReader();
+            reader.readAsDataURL(audioBlob);
+
+            reader.onloadend = async () => {
+                const base64Audio = reader.result;
+
+                try {
+                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.TRANSCRIBE_AUDIO}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ audio: base64Audio }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const data = await response.json();
+
+                    if (!sessionActiveRef.current) {
+                        return;
+                    }
+
+                    if (data.success && data.transcription) {
+                        const transcriptText = data.transcription.trim();
+                        
+                        if (!isDuplicate(transcriptText)) {
+                            recentTranscriptsRef.current.push(transcriptText);
+
+                            if (recentTranscriptsRef.current.length > 5) {
+                                recentTranscriptsRef.current.shift();
+                            }
+
+                            const timestamp = new Date().toLocaleTimeString();
+                            const newTranscription = {
+                                text: transcriptText,
+                                timestamp: timestamp,
+                                id: Date.now() + chunkId,
+                                chunkId: chunkId
+                            };
+
+                            setTranscriptions(prev => [newTranscription, ...prev]);
+                            setQuestionTranscripts(prev => [...prev, transcriptText]);
+
+                            if (sessionActiveRef.current) {
+                                analyzeVoiceChunk(base64Audio, transcriptText, audioBlob.size);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.error('Transcription error:', err);
+                } finally {
+                    setIsTranscribing(false);
+                }
+            };
+
+            reader.onerror = (err) => {
+                console.error('FileReader error:', err);
+                setIsTranscribing(false);
+            };
+        } catch (err) {
+            console.error('Transcribe audio error:', err);
+            setIsTranscribing(false);
+        }
+    }, [isDuplicate, analyzeVoiceChunk]);
+
+    const startContinuousRecording = useCallback(async () => {
+        if (!streamRef.current || !sessionActiveRef.current) {
+            console.error('Cannot start recording - missing stream or session inactive');
+            return;
+        }
+
+        continuousRecordingRef.current = { active: true, intervalId: null };
+
+        let chunkCounter = 0;
+        const activeRecorders = new Set();
+
+        const recordChunk = async (duration = 8000) => {
+            if (!continuousRecordingRef.current?.active || !streamRef.current || !sessionActiveRef.current) {
+                activeRecorders.forEach(recorder => {
+                    if (recorder.state === 'recording') {
+                        recorder.stop();
+                    }
+                });
+                activeRecorders.clear();
+                return;
+            }
+
+            try {
+                const audioTracks = streamRef.current.getAudioTracks();
+                
+                if (audioTracks.length === 0) {
+                    console.warn('No audio tracks available');
+                    return;
+                }
+
+                const audioStream = new MediaStream(audioTracks);
+                const chunks = [];
+                const chunkId = chunkCounter++;
+
+                const mediaRecorder = new MediaRecorder(audioStream, {
+                    mimeType: 'audio/webm;codecs=opus'
+                });
+
+                activeRecorders.add(mediaRecorder);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        chunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    activeRecorders.delete(mediaRecorder);
+                    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
+
+                    if (audioBlob.size > 5000 && sessionActiveRef.current) {
+                        setIsTranscribing(true);
+                        await transcribeAudio(audioBlob, chunkId);
+                    }
+                };
+
+                mediaRecorder.onerror = (error) => {
+                    console.error(`MediaRecorder error for chunk #${chunkId}:`, error);
+                };
+
+                setIsRecording(true);
+                mediaRecorder.start();
+
+                setTimeout(() => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, duration);
+
+            } catch (err) {
+                console.error('Record chunk error:', err);
+            }
         };
-    }, [stopWebcam]);
+
+        setTimeout(() => recordChunk(8000), 500);
+        setTimeout(() => recordChunk(8000), 6500);
+        setTimeout(() => recordChunk(8000), 12500);
+
+        setTimeout(() => {
+            const intervalId = setInterval(() => {
+                if (continuousRecordingRef.current?.active && sessionActiveRef.current) {
+                    recordChunk(8000);
+                } else {
+                    clearInterval(intervalId);
+                }
+            }, 6000);
+
+            if (continuousRecordingRef.current) {
+                continuousRecordingRef.current.intervalId = intervalId;
+            }
+        }, 18500);
+
+    }, [transcribeAudio]);
+
+    const stopContinuousRecording = useCallback(() => {
+        if (continuousRecordingRef.current?.intervalId) {
+            clearInterval(continuousRecordingRef.current.intervalId);
+        }
+
+        continuousRecordingRef.current = null;
+        setIsRecording(false);
+        recentTranscriptsRef.current = [];
+    }, []);
+
+    const captureAndAnalyze = useCallback(async () => {
+        if (!isSessionActive || !sessionActiveRef.current || !videoRef.current || !canvasRef.current) return;
+        if (!streamRef.current) return;
+        if (isAnalyzing) return;
+        if (videoRef.current.readyState !== 4) return;
+
+        setIsAnalyzing(true);
+
+        try {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            const context = canvas.getContext('2d');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageData = canvas.toDataURL('image/jpeg', 0.95);
+
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_EMOTION}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: imageData }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if (!sessionActiveRef.current) {
+                return;
+            }
+
+            if (data.success) {
+                setEmotionData(data);
+
+                const smoothed = smoothEmotions(data.emotions);
+                const dominantEmotion = Object.entries(smoothed).reduce((a, b) =>
+                    smoothed[a[0]] > smoothed[b[0]] ? a : b
+                )[0];
+
+                setSmoothedEmotions({
+                    emotions: smoothed,
+                    dominant_emotion: dominantEmotion,
+                    face_count: data.face_count,
+                    faces: data.faces
+                });
+
+                setWebcamError('');
+            }
+        } catch (err) {
+            console.error('Capture error:', err);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    }, [isAnalyzing, isSessionActive]);
 
     const startWebcam = async () => {
         try {
@@ -209,274 +490,149 @@ export default function VirtueSenseDashboard() {
         }
     };
 
-    const transcribeAudio = useCallback(async (audioBlob, chunkId) => {
-        // Only transcribe if session is active
-        if (!isSessionActive) return;
+    const evaluateAnswer = async () => {
+        if (questionTranscripts.length === 0) return;
+
+        setIsEvaluating(true);
+        const fullAnswer = questionTranscripts.join(' ');
+        // ✅ Use currentQuestion from component scope (already defined at top)
 
         try {
-            const reader = new FileReader();
-            reader.readAsDataURL(audioBlob);
-
-            reader.onloadend = async () => {
-                const base64Audio = reader.result;
-
-                try {
-                    const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.TRANSCRIBE_AUDIO}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ audio: base64Audio }),
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success && data.transcription) {
-                        const transcriptText = data.transcription.trim();
-
-                        if (!isDuplicate(transcriptText)) {
-                            recentTranscriptsRef.current.push(transcriptText);
-
-                            if (recentTranscriptsRef.current.length > 5) {
-                                recentTranscriptsRef.current.shift();
-                            }
-
-                            const timestamp = new Date().toLocaleTimeString();
-                            const newTranscription = {
-                                text: transcriptText,
-                                timestamp: timestamp,
-                                id: Date.now() + chunkId,
-                                chunkId: chunkId
-                            };
-
-                            setTranscriptions(prev => [newTranscription, ...prev]);
-                            setQuestionTranscripts(prev => [...prev, transcriptText]);
-
-                            analyzeVoiceChunk(base64Audio, transcriptText, audioBlob.size);
-                        }
-                    }
-                } catch (err) {
-                    console.error(`Transcription error for chunk ${chunkId}:`, err);
-                } finally {
-                    setIsTranscribing(false);
-                }
-            };
-
-            reader.onerror = (err) => {
-                console.error(`FileReader error for chunk ${chunkId}:`, err);
-                setIsTranscribing(false);
-            };
-        } catch (err) {
-            console.error('Error processing audio:', err);
-            setIsTranscribing(false);
-        }
-    }, [isDuplicate, isSessionActive]);
-
-    const analyzeVoiceChunk = useCallback(async (base64Audio, transcript, audioBlobSize) => {
-        // Only analyze if session is active
-        if (!isSessionActive) return;
-
-        try {
-            const estimatedDuration = (audioBlobSize / 1024) * 0.1;
-
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_VOICE}`, {
+            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.EVALUATE_ANSWER}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    audio: base64Audio,
-                    transcript: transcript,
-                    duration: estimatedDuration
+                    question: currentQuestion.question,
+                    answer: fullAnswer
                 }),
             });
 
             const data = await response.json();
 
             if (data.success) {
-                setVoiceAnalysis(data);
-
-                setEmotionHistory(prev => {
-                    const lastEntry = prev[prev.length - 1] || { time: sessionTime };
-                    return [...prev, {
-                        ...lastEntry,
-                        time: sessionTime,
-                        voiceConfidence: data.scores.confidence,
-                        voiceNervousness: data.scores.nervousness,
-                        voiceFluency: data.scores.fluency
-                    }];
-                });
+                setAnswerScore(data);
             }
         } catch (err) {
-            console.error('Voice analysis error:', err);
+            console.error('❌ Error evaluating answer:', err);
+        } finally {
+            setIsEvaluating(false);
         }
-    }, [sessionTime, isSessionActive]);
-
-    const startContinuousRecording = useCallback(async () => {
-        if (!streamRef.current || !isSessionActive) return;
-
-        continuousRecordingRef.current = { active: true, intervalId: null };
-
-        let chunkCounter = 0;
-        const activeRecorders = new Set();
-
-        const recordChunk = async (duration = 8000) => {
-            if (!continuousRecordingRef.current?.active || !streamRef.current || !isSessionActive) {
-                activeRecorders.forEach(recorder => {
-                    if (recorder.state === 'recording') {
-                        recorder.stop();
-                    }
-                });
-                activeRecorders.clear();
-                return;
-            }
-
-            try {
-                const audioTracks = streamRef.current.getAudioTracks();
-                if (audioTracks.length === 0) return;
-
-                const audioStream = new MediaStream(audioTracks);
-                const chunks = [];
-                const chunkId = chunkCounter++;
-
-                const mediaRecorder = new MediaRecorder(audioStream, {
-                    mimeType: 'audio/webm;codecs=opus'
-                });
-
-                activeRecorders.add(mediaRecorder);
-
-                mediaRecorder.ondataavailable = (event) => {
-                    if (event.data.size > 0) {
-                        chunks.push(event.data);
-                    }
-                };
-
-                mediaRecorder.onstop = async () => {
-                    activeRecorders.delete(mediaRecorder);
-                    const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-
-                    if (audioBlob.size > 5000 && isSessionActive) {
-                        setIsTranscribing(true);
-                        await transcribeAudio(audioBlob, chunkId);
-                    }
-                };
-
-                setIsRecording(true);
-                mediaRecorder.start();
-
-                setTimeout(() => {
-                    if (mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
-                }, duration);
-
-            } catch (err) {
-                console.error('Recording error:', err);
-            }
-        };
-
-        setTimeout(() => recordChunk(8000), 500);
-        setTimeout(() => recordChunk(8000), 6500);
-        setTimeout(() => recordChunk(8000), 12500);
-
-        setTimeout(() => {
-            const intervalId = setInterval(() => {
-                if (continuousRecordingRef.current?.active && isSessionActive) {
-                    recordChunk(8000);
-                } else {
-                    clearInterval(intervalId);
-                }
-            }, 6000);
-
-            if (continuousRecordingRef.current) {
-                continuousRecordingRef.current.intervalId = intervalId;
-            }
-        }, 18500);
-
-    }, [transcribeAudio, isSessionActive]);
-
-    const stopContinuousRecording = useCallback(() => {
-        if (continuousRecordingRef.current?.intervalId) {
-            clearInterval(continuousRecordingRef.current.intervalId);
-        }
-
-        continuousRecordingRef.current = null;
-        setIsRecording(false);
-        recentTranscriptsRef.current = [];
-    }, []);
-
-    const smoothEmotions = (newEmotions) => {
-        const historyLength = 5;
-        emotionHistoryRef.current.push(newEmotions);
-
-        if (emotionHistoryRef.current.length > historyLength) {
-            emotionHistoryRef.current.shift();
-        }
-
-        const averaged = {};
-        const emotionKeys = Object.keys(newEmotions);
-
-        emotionKeys.forEach(emotion => {
-            const sum = emotionHistoryRef.current.reduce((acc, curr) => acc + (curr[emotion] || 0), 0);
-            averaged[emotion] = sum / emotionHistoryRef.current.length;
-        });
-
-        return averaged;
     };
 
-    const captureAndAnalyze = useCallback(async () => {
-        // Only analyze if session is active
-        if (!isSessionActive || !videoRef.current || !canvasRef.current) return;
-        if (!streamRef.current) return;
-        if (isAnalyzing) return;
-        if (videoRef.current.readyState !== 4) return;
+    const nextQuestion = () => {
+        if (currentQuestionIndex < interviewQuestions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setQuestionTranscripts([]);
+            setAnswerScore(null);
+            setTranscriptions([]);
+        }
+    };
 
-        setIsAnalyzing(true);
+    const resetSession = () => {
+        setCurrentQuestionIndex(0);
+        setQuestionTranscripts([]);
+        setAnswerScore(null);
+        setTranscriptions([]);
+        setEmotionHistory([]);
+        setVoiceAnalysis(null);
+    };
+
+    const startSession = async () => {
+        setIsSessionActive(true);
+        sessionActiveRef.current = true;
+        
+        setSessionTime(0);
+        setEmotionHistory([]);
+        setEmotionData(null);
+        setSmoothedEmotions(null);
+        setTranscriptions([]);
+        setWebcamError('');
+        emotionHistoryRef.current = [];
+        recentTranscriptsRef.current = [];
+        setEmotionDistribution([
+            { name: 'Happy', value: 0, color: '#10b981' },
+            { name: 'Neutral', value: 0, color: '#6b7280' },
+            { name: 'Sad', value: 0, color: '#3b82f6' },
+            { name: 'Angry', value: 0, color: '#ef4444' },
+            { name: 'Surprise', value: 0, color: '#f59e0b' },
+            { name: 'Fear', value: 0, color: '#8b5cf6' },
+            { name: 'Disgust', value: 0, color: '#06B6D4' }
+        ]);
+
+        await startWebcam();
+
+        setTimeout(() => {
+            if (sessionActiveRef.current && streamRef.current) {
+                console.log('✅ Starting continuous recording');
+                startContinuousRecording();
+            }
+        }, 2000);
+    };
+
+    const stopSession = () => {
+        setIsSessionActive(false);
+        sessionActiveRef.current = false;
+        
+        stopWebcam();
+        stopContinuousRecording();
+        
+        if (analysisIntervalRef.current) {
+            clearInterval(analysisIntervalRef.current);
+            analysisIntervalRef.current = null;
+        }
+    };
+
+    const handleCompleteSession = async () => {
+        if (!moduleId || !sectionId || !practiceId) {
+            console.error('Missing practice identifiers');
+            return;
+        }
 
         try {
-            const video = videoRef.current;
-            const canvas = canvasRef.current;
-            const context = canvas.getContext('2d');
+            const sessionData = {
+                overallScore,
+                averageConfidence: emotionHistory.reduce((sum, item) => sum + item.confidence, 0) / emotionHistory.length,
+                averageEngagement: emotionHistory.reduce((sum, item) => sum + item.engagement, 0) / emotionHistory.length,
+                answerScore: answerScore?.score || 0,
+                sessionDuration: sessionTime,
+                transcriptCount: transcriptions.length
+            };
 
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            await completePractice(moduleId, sectionId, practiceId, sessionData);
 
-            const imageData = canvas.toDataURL('image/jpeg', 0.95);
+            alert('Practice completed! Progress saved.');
 
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.ANALYZE_EMOTION}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ image: imageData }),
-            });
+            setTimeout(() => {
+                navigate(`/dashboard?module=${moduleId}`);
+            }, 1500);
 
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                setEmotionData(data);
-
-                const smoothed = smoothEmotions(data.emotions);
-                const dominantEmotion = Object.entries(smoothed).reduce((a, b) =>
-                    smoothed[a[0]] > smoothed[b[0]] ? a : b
-                )[0];
-
-                setSmoothedEmotions({
-                    emotions: smoothed,
-                    dominant_emotion: dominantEmotion,
-                    face_count: data.face_count,
-                    faces: data.faces
-                });
-
-                setWebcamError('');
-            }
-        } catch (err) {
-            // Silently handle errors during active session
-        } finally {
-            setIsAnalyzing(false);
+        } catch (error) {
+            console.error('Failed to save progress:', error);
+            alert('Failed to save progress. Please try again.');
         }
-    }, [isAnalyzing, isSessionActive]);
+    };
 
-    // Session timer - only runs when session is active
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            stopWebcam();
+            if (continuousRecordingRef.current?.intervalId) {
+                clearInterval(continuousRecordingRef.current.intervalId);
+            }
+            if (analysisIntervalRef.current) {
+                clearInterval(analysisIntervalRef.current);
+            }
+            continuousRecordingRef.current = null;
+        };
+    }, [stopWebcam]);
+
+    // Session timer
     useEffect(() => {
         if (!isSessionActive) return;
 
@@ -487,10 +643,9 @@ export default function VirtueSenseDashboard() {
         return () => clearInterval(interval);
     }, [isSessionActive]);
 
-    // Emotion analysis - only runs when session is active
+    // Emotion analysis
     useEffect(() => {
         if (!isSessionActive || !webcamActive) {
-            // Clear the interval if it exists
             if (analysisIntervalRef.current) {
                 clearInterval(analysisIntervalRef.current);
                 analysisIntervalRef.current = null;
@@ -498,10 +653,8 @@ export default function VirtueSenseDashboard() {
             return;
         }
 
-        // Wait for video to be ready
         const timeout = setTimeout(() => {
             if (videoRef.current?.readyState === 4) {
-                // Start continuous emotion analysis
                 analysisIntervalRef.current = setInterval(() => {
                     if (isSessionActive && streamRef.current) {
                         captureAndAnalyze();
@@ -519,20 +672,7 @@ export default function VirtueSenseDashboard() {
         };
     }, [isSessionActive, webcamActive, captureAndAnalyze]);
 
-    const calculateMetrics = useCallback(() => {
-        if (!smoothedEmotions?.emotions) return { confidence: 0, engagement: 0, composure: 0 };
-
-        const e = smoothedEmotions.emotions;
-        const positive = (e.happy || 0) + (e.neutral || 0) * 0.7;
-        const negative = (e.fear || 0) + (e.sad || 0) + (e.angry || 0);
-
-        const confidence = Math.max(0, Math.min(100, positive * 1.2 - (negative * 0.3)));
-        const engagement = Math.max(0, Math.min(100, ((e.neutral || 0) * 0.9 + (e.happy || 0)) * 1.1));
-        const composure = Math.max(0, Math.min(100, 100 - (negative * 0.4)));
-
-        return { confidence, engagement, composure };
-    }, [smoothedEmotions]);
-
+    // Update emotion history
     useEffect(() => {
         if (!isSessionActive || !smoothedEmotions) return;
 
@@ -561,107 +701,11 @@ export default function VirtueSenseDashboard() {
         });
     }, [smoothedEmotions, sessionTime, isSessionActive, calculateMetrics]);
 
-    const evaluateAnswer = async () => {
-        if (questionTranscripts.length === 0) return;
-
-        setIsEvaluating(true);
-        const fullAnswer = questionTranscripts.join(' ');
-        const currentQuestion = interviewQuestions[currentQuestionIndex];
-
-        try {
-            const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.INTERVIEW.EVALUATE_ANSWER}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    question: currentQuestion.question,
-                    answer: fullAnswer
-                }),
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                setAnswerScore(data);
-            }
-        } catch (err) {
-            console.error('Error evaluating answer:', err);
-        } finally {
-            setIsEvaluating(false);
-        }
-    };
-
-    const nextQuestion = () => {
-        if (currentQuestionIndex < interviewQuestions.length - 1) {
-            setCurrentQuestionIndex(prev => prev + 1);
-            setQuestionTranscripts([]);
-            setAnswerScore(null);
-            setTranscriptions([]);
-        }
-    };
-
-    const resetSession = () => {
-        setCurrentQuestionIndex(0);
-        setQuestionTranscripts([]);
-        setAnswerScore(null);
-        setTranscriptions([]);
-        setEmotionHistory([]);
-        setVoiceAnalysis(null);
-    };
-
-    const startSession = async () => {
-        setIsSessionActive(true);
-        setSessionTime(0);
-        setEmotionHistory([]);
-        setEmotionData(null);
-        setSmoothedEmotions(null);
-        setTranscriptions([]);
-        setWebcamError('');
-        emotionHistoryRef.current = [];
-        recentTranscriptsRef.current = [];
-        setEmotionDistribution([
-            { name: 'Happy', value: 0, color: '#10b981' },
-            { name: 'Neutral', value: 0, color: '#6b7280' },
-            { name: 'Sad', value: 0, color: '#3b82f6' },
-            { name: 'Angry', value: 0, color: '#ef4444' },
-            { name: 'Surprise', value: 0, color: '#f59e0b' },
-            { name: 'Fear', value: 0, color: '#8b5cf6' },
-            { name: 'Disgust', value: 0, color: '#06B6D4' }
-        ]);
-
-        await startWebcam();
-
-        // Start recording only after webcam is ready
-        setTimeout(() => {
-            if (isSessionActive) {
-                startContinuousRecording();
-            }
-        }, 2000);
-    };
-
-    const stopSession = () => {
-        setIsSessionActive(false);
-        stopWebcam();
-        stopContinuousRecording();
-        
-        // Clear analysis interval
-        if (analysisIntervalRef.current) {
-            clearInterval(analysisIntervalRef.current);
-            analysisIntervalRef.current = null;
-        }
-    };
-
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    };
-
     const displayData = smoothedEmotions || emotionData;
     const dominantColor = displayData?.dominant_emotion
         ? emotionColors[displayData.dominant_emotion.toLowerCase()] || '#9CA3AF'
         : '#9CA3AF';
     const metrics = calculateMetrics();
-    const currentQuestion = interviewQuestions[currentQuestionIndex];
 
     const overallScore = emotionHistory.length > 0
         ? Math.round(
@@ -670,39 +714,6 @@ export default function VirtueSenseDashboard() {
                 emotionHistory.reduce((sum, item) => sum + item.composure, 0) / emotionHistory.length) / 3
         )
         : 0;
-    const handleCompleteSession = async () => {
-  if (!moduleId || !sectionId || !practiceId) {
-    console.error('Missing practice identifiers');
-    return;
-  }
-
-  try {
-    // Prepare session data
-    const sessionData = {
-      overallScore,
-      averageConfidence: emotionHistory.reduce((sum, item) => sum + item.confidence, 0) / emotionHistory.length,
-      averageEngagement: emotionHistory.reduce((sum, item) => sum + item.engagement, 0) / emotionHistory.length,
-      answerScore: answerScore?.score || 0,
-      sessionDuration: sessionTime,
-      transcriptCount: transcriptions.length
-    };
-
-    // Mark as completed
-    await completePractice(moduleId, sectionId, practiceId, sessionData);
-
-    // Show success message
-    alert('Practice completed! Progress saved.');
-
-    // Navigate back
-    setTimeout(() => {
-      navigate(`/dashboard?module=${moduleId}`);
-    }, 1500);
-
-  } catch (error) {
-    console.error('Failed to save progress:', error);
-    alert('Failed to save progress. Please try again.');
-  }
-};
 
     const radarData = voiceAnalysis ? [
         {
@@ -726,7 +737,6 @@ export default function VirtueSenseDashboard() {
             score: answerScore ? Math.round(answerScore.clarity * 10) : 0,
         },
     ] : [];
-
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-6">
             {/* Header */}
@@ -1089,8 +1099,6 @@ export default function VirtueSenseDashboard() {
                         </div>
                     </div>
                 )}
-
-                // After "End Session" button or in the answer evaluation section:
 {isSessionActive && answerScore && (
   <button
     onClick={handleCompleteSession}
