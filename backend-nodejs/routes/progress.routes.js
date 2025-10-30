@@ -1,21 +1,21 @@
 import express from 'express';
+import { ObjectId } from 'mongodb';
 import { getUsersCollection } from '../config/database.js';
+import verifyToken from '../middleware/auth.js'; // ✅ Changed to import
 
 const router = express.Router();
 
-// Middleware to extract user ID (simplified - replace with your actual auth)
+// ✅ FIXED: Extract user ID from JWT token (set by verifyToken middleware)
 const getUserId = (req) => {
-  // TODO: Extract from JWT token
-  // const token = req.headers.authorization?.split(' ')[1];
-  // const decoded = jwt.verify(token, process.env.JWT_SECRET);
-  // return decoded.userId;
-  
-  // For now, return a test user
-  return 'test-user-' + (req.headers['x-user-id'] || '123');
+  // The verifyToken middleware should set req.userId
+  if (!req.userId) {
+    throw new Error('User ID not found in request. Authentication required.');
+  }
+  return req.userId; // This will be the actual MongoDB _id from the JWT
 };
 
 // ✅ POST /api/progress/complete - Mark section as complete
-router.post('/complete', async (req, res) => {
+router.post('/complete', verifyToken, async (req, res) => {
   try {
     console.log('📥 POST /api/progress/complete');
     console.log('Request body:', JSON.stringify(req.body, null, 2));
@@ -66,7 +66,7 @@ router.post('/complete', async (req, res) => {
     }
     
     const userId = getUserId(req);
-    console.log('👤 User ID:', userId);
+    console.log('👤 Authenticated User ID:', userId);
     
     const usersCollection = getUsersCollection();
     
@@ -94,8 +94,8 @@ router.post('/complete', async (req, res) => {
     
     console.log('📝 Progress entry to save:', JSON.stringify(progressEntry, null, 2));
     
-    // Check if this progress already exists
-    const user = await usersCollection.findOne({ _id: userId });
+    // ✅ Use ObjectId for MongoDB query
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
     console.log('👤 User found:', user ? 'Yes' : 'No');
     
     if (user && user.progress) {
@@ -123,7 +123,7 @@ router.post('/complete', async (req, res) => {
         console.log('🔄 Updating existing progress at index:', existingIndex);
         // Update existing progress
         await usersCollection.updateOne(
-          { _id: userId },
+          { _id: new ObjectId(userId) },
           { $set: { [`progress.${existingIndex}`]: progressEntry } }
         );
         console.log('✅ Progress updated');
@@ -131,25 +131,23 @@ router.post('/complete', async (req, res) => {
         console.log('➕ Adding new progress entry');
         // Add new progress
         await usersCollection.updateOne(
-          { _id: userId },
+          { _id: new ObjectId(userId) },
           { $push: { progress: progressEntry } }
         );
         console.log('✅ Progress added');
       }
     } else {
-      console.log('👤 Creating new user with progress');
-      // Create new user with progress
+      console.log('👤 Adding progress to user');
+      // Add progress to existing user (don't create new user, they already exist from signup)
       await usersCollection.updateOne(
-        { _id: userId },
+        { _id: new ObjectId(userId) },
         {
           $set: { 
-            progress: [progressEntry],
-            createdAt: new Date()
+            progress: [progressEntry]
           }
-        },
-        { upsert: true }
+        }
       );
-      console.log('✅ New user created with progress');
+      console.log('✅ Progress added to existing user');
     }
     
     res.status(200).json({
@@ -169,12 +167,12 @@ router.post('/complete', async (req, res) => {
 });
 
 // ✅ GET /api/progress/my - Get user's progress
-router.get('/my', async (req, res) => {
+router.get('/my', verifyToken, async (req, res) => {
   try {
     console.log('📥 GET /api/progress/my');
     
     const userId = getUserId(req);
-    console.log('👤 User ID:', userId);
+    console.log('👤 Authenticated User ID:', userId);
     
     const usersCollection = getUsersCollection();
     
@@ -186,7 +184,7 @@ router.get('/my', async (req, res) => {
       });
     }
     
-    const user = await usersCollection.findOne({ _id: userId });
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
     
     if (!user || !user.progress) {
       console.log('ℹ️  No progress found for user');
@@ -214,13 +212,13 @@ router.get('/my', async (req, res) => {
 });
 
 // ✅ GET /api/progress/module/:moduleId - Get progress for specific module
-router.get('/module/:moduleId', async (req, res) => {
+router.get('/module/:moduleId', verifyToken, async (req, res) => {
   try {
     console.log('📥 GET /api/progress/module/:moduleId');
     
     const { moduleId } = req.params;
     const userId = getUserId(req);
-    console.log('👤 User ID:', userId);
+    console.log('👤 Authenticated User ID:', userId);
     console.log('📦 Module ID:', moduleId);
     
     const usersCollection = getUsersCollection();
@@ -233,7 +231,7 @@ router.get('/module/:moduleId', async (req, res) => {
       });
     }
     
-    const user = await usersCollection.findOne({ _id: userId });
+    const user = await usersCollection.findOne({ _id: new ObjectId(userId) });
     
     if (!user || !user.progress) {
       console.log('ℹ️  No progress found for user');
@@ -265,7 +263,7 @@ router.get('/module/:moduleId', async (req, res) => {
   }
 });
 
-router.delete('/reset', async (req, res) => {
+router.delete('/reset', verifyToken, async (req, res) => {
   try {
     if (process.env.NODE_ENV !== 'development') {
       return res.status(403).json({
@@ -275,7 +273,7 @@ router.delete('/reset', async (req, res) => {
     }
 
     const userId = getUserId(req);
-    console.log('🧹 Resetting progress for user:', userId);
+    console.log('🧹 Resetting progress for authenticated user:', userId);
 
     const usersCollection = getUsersCollection();
     if (!usersCollection) {
@@ -284,8 +282,8 @@ router.delete('/reset', async (req, res) => {
 
     // ✅ Remove progress field entirely
     const result = await usersCollection.updateOne(
-      { _id: userId },
-      { $unset: { progress: "" } } // removes progress array cleanly
+      { _id: new ObjectId(userId) },
+      { $unset: { progress: "" } }
     );
 
     if (result.modifiedCount === 0) {
@@ -300,4 +298,5 @@ router.delete('/reset', async (req, res) => {
     res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
+
 export default router;
