@@ -12,6 +12,9 @@ import { ProgressProvider } from './contexts/ProgressContext';
 import NavBar from './components/shared/NavBar';
 import Footer from './components/shared/Footer';
 import authService from './services/auth.service';
+import DevTools from './components/DevTools.jsx';
+
+
 
 function App() {
   const isLoggedIn = authService?.isAuthenticated?.() || !!localStorage.getItem('token');
@@ -25,7 +28,7 @@ function App() {
     <ProgressProvider>
       {/* ✅ Conditionally render NavBar */}
       {!hideNavAndFooter && <NavBar />}
-
+    <DevTools /> 
       <main className="min-h-screen">
         <Routes>
           {/* Public Routes */}

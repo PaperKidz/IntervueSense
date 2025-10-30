@@ -112,6 +112,19 @@ const progressService = {
       console.error('getModuleProgress error:', error);
       throw error;
     }
+  },
+
+  // ✨ ADD THIS METHOD - Reset all progress
+  resetProgress: async () => {
+    try {
+      console.log('🗑️ Resetting progress...');
+      const response = await api.delete('/progress/reset');
+      console.log('✅ Progress reset successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ resetProgress error:', error);
+      throw error;
+    }
   }
 };
 

@@ -159,18 +159,32 @@ export const ProgressProvider = ({ children }) => {
     }
   }, [location.pathname]);
 
-  return (
-    <ProgressContext.Provider value={{ 
-      progress, 
-      completeTheory, 
-      completePractice,
-      getItemStatus,
-      fetchProgress,
-      isLoading
-    }}>
-      {children}
-    </ProgressContext.Provider>
-  );
+  const resetProgress = async () => {
+  try {
+    console.log('🧹 Resetting progress via context...');
+    await progressService.resetProgress(); // ✅ Now this will work!
+    setProgress([]); // Clear local state
+    console.log('✅ Progress reset and local state cleared');
+  } catch (err) {
+    console.error('❌ Reset progress failed:', err);
+    throw err;
+  }
+};
+
+   return (
+  <ProgressContext.Provider value={{ 
+    progress, 
+    completeTheory, 
+    completePractice,
+    getItemStatus,
+    fetchProgress,
+    resetProgress, // ✨ Add this
+    isLoading
+  }}>
+    {children}
+  </ProgressContext.Provider>
+);
+
 };
 
 export const useProgress = () => {
