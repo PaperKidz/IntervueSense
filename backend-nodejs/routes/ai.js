@@ -1,9 +1,9 @@
 import express from "express";
-import mongoose from "mongoose";
 import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 import { OpenAI } from "openai";
+import { getUsersCollection } from "../config/database.js"; // ✅ Import your native MongoDB
 
 // Resolve directory (ensures correct .env path)
 const __filename = fileURLToPath(import.meta.url);
@@ -22,15 +22,6 @@ if (!process.env.OPENAI_API_KEY) {
 
 // ✅ Initialize OpenAI client
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// ✅ Define simple Mongoose schema for saved AI responses
-const aiResponseSchema = new mongoose.Schema({
-  prompt: String,
-  response: String,
-  createdAt: { type: Date, default: Date.now },
-});
-
-const AIResponse = mongoose.model("AIResponse", aiResponseSchema);
 
 // ✅ Test route
 router.get("/", (req, res) => {
@@ -52,10 +43,28 @@ router.post("/generate", async (req, res) => {
 
     const aiText = completion.choices[0].message.content;
 
-    const newResponse = new AIResponse({ prompt, response: aiText });
-    await newResponse.save();
-
-    res.status(200).json({ success: true, data: newResponse });
+    // ✅ Save to MongoDB using native driver (optional)
+    try {
+      const usersCollection = getUsersCollection();
+      const aiResponsesCollection = usersCollection.s.db.collection('aiResponses');
+      
+      const newResponse = {
+        prompt,
+        response: aiText,
+        createdAt: new Date()
+      };
+      
+      await aiResponsesCollection.insertOne(newResponse);
+      
+      res.status(200).json({ success: true, data: newResponse });
+    } catch (dbError) {
+      console.warn("⚠️ Could not save to database, but AI generation succeeded:", dbError.message);
+      // Still return success even if DB save fails
+      res.status(200).json({ 
+        success: true, 
+        data: { prompt, response: aiText, createdAt: new Date() }
+      });
+    }
   } catch (err) {
     console.error("❌ Error in /generate:", err);
     res.status(500).json({ success: false, error: "Failed to generate response" });
