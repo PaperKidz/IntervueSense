@@ -14,10 +14,12 @@ const ModuleDashboard = () => {
   const progressData = progress || {};
 
   const openPractice = (moduleId, sectionId, practiceId) => {
+    // Practice questions -> dashboard
     navigate(`/dashboard?module=${moduleId}&section=${encodeURIComponent(sectionId)}&practice=${practiceId}`);
   };
 
   const openTheory = (moduleId, sectionId) => {
+    // Theory lessons -> theory page
     navigate(`/theory?module=${moduleId}&section=${encodeURIComponent(sectionId)}`);
   };
 
@@ -29,8 +31,11 @@ const ModuleDashboard = () => {
     setSelectedModuleId(selectedModuleIdFromUrl || null);
   }, [selectedModuleIdFromUrl]);
 
-  // ✅ REMOVED the problematic useEffect that was redirecting to login
-  // The ProtectedRoute component already handles authentication
+  useEffect(() => {
+    if (!authService.isAuthenticated()) {
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
 
   const toggleSection = (id) => {
     setExpandedSections(prev => ({ ...prev, [id]: !prev[id] }));
@@ -56,14 +61,14 @@ const ModuleDashboard = () => {
 
   // Check if a section should be unlocked
   const isSectionUnlocked = (moduleId, sectionId) => {
-    // ✅ Module 1, Section 1.1 is ALWAYS unlocked (even with no progress)
-    if (moduleId === '1' && sectionId === '1.1') {
-      return true;
+    // If no progress, only Module 1, Section 1.1 is unlocked
+    if (hasNoProgress()) {
+      return moduleId === '1' && sectionId === '1.1';
     }
 
-    // ✅ If no progress exists, only Section 1.1 is unlocked
-    if (hasNoProgress()) {
-      return false;
+    // Module 1, Section 1.1 is always unlocked
+    if (moduleId === '1' && sectionId === '1.1') {
+      return true;
     }
 
     const module = getModuleById(moduleId);
@@ -99,14 +104,8 @@ const ModuleDashboard = () => {
       const newExpandedSections = {};
       selectedModule.sections.forEach(section => {
         const isUnlocked = isSectionUnlocked(selectedModule.id, section.id);
-        // ✅ Auto-expand Section 1.1 if it's not completed, or any unlocked incomplete section
-        if (selectedModule.id === '1' && section.id === '1.1') {
-          // Always expand section 1.1 in module 1 if not fully completed
-          newExpandedSections[section.id] = !isSectionFullyCompleted(selectedModule.id, section);
-        } else {
-          // Expand other unlocked sections that aren't fully completed
-          newExpandedSections[section.id] = isUnlocked && !isSectionFullyCompleted(selectedModule.id, section);
-        }
+        // Expand if unlocked and not fully completed
+        newExpandedSections[section.id] = isUnlocked && !isSectionFullyCompleted(selectedModule.id, section);
       });
       setExpandedSections(newExpandedSections);
     }
@@ -291,7 +290,7 @@ const ModuleDashboard = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {!sectionUnlocked && <span className="text-xs text-gray-400 mr-2">🔒 Locked</span>}
+                    {!sectionUnlocked && <span className="text-xs text-gray-400 mr-2">Locked</span>}
                     <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${expandedSections[section.id] ? 'rotate-180' : ''}`} />
                   </div>
                 </button>
@@ -349,7 +348,7 @@ const ModuleDashboard = () => {
                             Start
                           </button>
                         )}
-                        {(!sectionUnlocked || theoryStatus === 'locked') && <span className="text-xs text-gray-400 flex-shrink-0">🔒 Locked</span>}
+                        {(!sectionUnlocked || theoryStatus === 'locked') && <span className="text-xs text-gray-400 flex-shrink-0">Locked</span>}
                       </div>
                     </div>
 
@@ -415,7 +414,7 @@ const ModuleDashboard = () => {
                                 Start
                               </button>
                             )}
-                            {practiceStatus === 'locked' && <span className="text-xs text-gray-400 flex-shrink-0">🔒 Locked</span>}
+                            {practiceStatus === 'locked' && <span className="text-xs text-gray-400 flex-shrink-0">Locked</span>}
                           </div>
                         </div>
                       );

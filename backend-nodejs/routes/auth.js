@@ -1,14 +1,14 @@
-import express from 'express';
-import { ObjectId } from 'mongodb';
-import verifyToken from '../middleware/auth.js';
-import { getUsersCollection } from '../config/database.js';
-import {
+const express = require('express');
+const { ObjectId } = require('mongodb');
+const verifyToken = require('../middleware/auth');
+const { getUsersCollection } = require('../config/database');
+const {
   hashPassword,
   comparePassword,
   generateToken,
   validateEmail,
   validatePassword
-} from '../utils/auth.js';
+} = require('../utils/auth');
 
 const router = express.Router();
 
@@ -131,4 +131,4 @@ router.get('/user/profile', verifyToken, async (req, res, next) => {
   }
 });
 
-export default router;
+module.exports = router;

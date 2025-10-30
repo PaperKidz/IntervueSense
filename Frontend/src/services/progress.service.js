@@ -1,25 +1,19 @@
 import axios from 'axios';
-import authService from './auth.service';
 
 // ✅ Create axios instance with base configuration
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: '/api', // This will go through Vite proxy or Nginx
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json'
   }
 });
 
-// ✅ Request interceptor - Add JWT token to all requests
+// ✅ Request interceptor (optional - for debugging)
 api.interceptors.request.use(
   (config) => {
-    const token = authService.getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     console.log('API Request:', config.method.toUpperCase(), config.url);
     console.log('Request Data:', config.data);
-    console.log('Auth Token:', token ? 'Present' : 'Missing');
     return config;
   },
   (error) => {
@@ -27,7 +21,7 @@ api.interceptors.request.use(
   }
 );
 
-// ✅ Response interceptor - Handle auth errors CAREFULLY
+// ✅ Response interceptor (optional - for error handling)
 api.interceptors.response.use(
   (response) => {
     console.log('API Response:', response.status, response.data);
@@ -35,28 +29,12 @@ api.interceptors.response.use(
   },
   (error) => {
     console.error('API Error:', error.response?.status, error.response?.data);
-    
-    // ✅ Only redirect to login if:
-    // 1. We get a 401 error
-    // 2. We're NOT already on login/signup page
-    if (error.response?.status === 401) {
-      const currentPath = window.location.pathname;
-      const isAuthPage = currentPath === '/login' || currentPath === '/signup';
-      
-      if (!isAuthPage) {
-        console.error('Authentication failed - redirecting to login');
-        authService.logout();
-        window.location.href = '/login';
-      } else {
-        console.log('Already on auth page, not redirecting');
-      }
-    }
-    
     return Promise.reject(error);
   }
 );
 
 const progressService = {
+  // Get user's progress
   getUserProgress: async () => {
     try {
       const response = await api.get('/progress/my');
@@ -67,6 +45,7 @@ const progressService = {
     }
   },
 
+  // Complete a theory section
   completeTheory: async (moduleId, sectionId, data = {}) => {
     try {
       const response = await api.post('/progress/complete', {
@@ -82,6 +61,7 @@ const progressService = {
     }
   },
 
+  // ✅ FIXED: Complete a practice section with practiceId parameter
   completePractice: async (moduleId, sectionId, practiceId, sessionData = {}) => {
     try {
       console.log('completePractice called with:', { moduleId, sectionId, practiceId, sessionData });
@@ -91,8 +71,8 @@ const progressService = {
         sectionId: String(sectionId),
         type: 'practice',
         data: {
-          practiceId: String(practiceId),
-          ...sessionData
+          practiceId: String(practiceId), // ✅ Include practiceId in data
+          ...sessionData // ✅ Spread session data (scores, duration, etc.)
         }
       });
       
@@ -104,6 +84,7 @@ const progressService = {
     }
   },
 
+  // Get progress for a specific module
   getModuleProgress: async (moduleId) => {
     try {
       const response = await api.get(`/progress/module/${moduleId}`);
