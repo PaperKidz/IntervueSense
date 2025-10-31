@@ -2,6 +2,7 @@
   "name": "intervuesense-frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
@@ -16,12 +17,8 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "frontend-start": "vite",
-    "frontend-build": "vite build",
-    "backend-start": "cross-env PYTHONUTF8=1 python ../Backend/app.py",
-    "nodejs-start": "node ../backend-nodejs/server.js",
-    "dev": "concurrently \"npm run nodejs-start\" \"npm run backend-start\" \"npm run frontend-start\" --names \"NODE,FLASK,REACT\" --prefix \"[{name}]\" --colors \"cyan,magenta,green\"",
-    "build": "npm run frontend-build",
+    "dev": "vite",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "eslintConfig": {
@@ -42,11 +39,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5000",
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
-    "concurrently": "^8.2.2",
-    "cross-env": "^10.1.0",
     "vite": "^7.1.10"
   }
 }

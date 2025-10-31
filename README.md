@@ -1,148 +1,78 @@
 # 🚀 VirtueSense: AI-Powered Interview Practice Platform
 
-VirtueSense is an intelligent interview simulation platform that analyzes **facial expressions**, **voice tone**, and **speech clarity** to help users improve communication skills and confidence in interviews.
-It combines **Flask**, **React + Vite**, **OpenAI**, and **DeepFace** to deliver real-time emotional and linguistic feedback.
+VirtueSense is an intelligent interview simulation platform that analyzes **facial expressions**, **voice tone**, and **speech clarity** to help users improve communication skills and confidence in interviews.  
+It combines **Flask**, **Node.js**, **React + Vite**, **OpenAI**, and **DeepFace** — all containerized using **Docker** for easy setup and deployment.
 
 ---
 
 ## 🧠 Features
 
-* 🎤 Real-time **speech-to-text** analysis using SpeechRecognition and OpenAI
-* 😊 **Emotion & facial expression** detection with DeepFace and OpenCV
-* 🧩 Seamless **Flask + React + Vite integration** via Nginx reverse proxy
-* 🔊 Supports **audio-based feedback** and **text-based evaluation**
-* 📊 Provides structured insights into clarity, tone, and confidence
+* 🎤 Real-time **speech-to-text** analysis using SpeechRecognition and OpenAI  
+* 😊 **Emotion & facial expression** detection with DeepFace and OpenCV  
+* 🧩 Unified **Flask + Node.js + React** microservice architecture via Docker  
+* 🔊 Supports **audio-based** and **text-based** feedback  
+* 📊 Provides structured insights into clarity, tone, and confidence  
+* 🐳 **Dockerized** for instant environment setup with one command  
 
 ---
 
 ## 📦 Prerequisites
 
-Before starting, make sure you have these installed:
+Before you begin, make sure you have the following installed:
 
-| Dependency  | Minimum Version | Purpose                       |
-| ----------- | --------------- | ----------------------------- |
-| **Python**  | 3.8+            | Backend (Flask)               |
-| **Node.js** | 18+             | Frontend (React + Vite)       |
-| **Git**     | —               | Clone repository              |
-| **FFmpeg**  | Latest          | Audio conversion & processing |
-| **Nginx**   | Latest          | Reverse proxy & routing       |
-
-### 🔧 FFmpeg Installation
-
-* **Windows:** [Download](https://ffmpeg.org/download.html) → Add `bin` folder to PATH
-* **macOS:** `brew install ffmpeg`
-* **Linux (Debian/Ubuntu):** `sudo apt update && sudo apt install ffmpeg`
-
-### 🌐 Nginx Installation
-
-* **Windows:** Download Nginx → extract to `C:\nginx`
-* **macOS:** `brew install nginx`
-* **Linux:** `sudo apt update && sudo apt install nginx`
+| Dependency | Minimum Version | Purpose |
+| ----------- | ---------------- | -------- |
+| **Docker** | Latest | Containerization of all services |
+| **Git** | — | Clone repository |
 
 ---
 
-# 🛠️ Step 1: Project Setup
-
-Clone the repository:
+## 🛠️ Step 1: Clone Repository
 
 ```bash
 git clone https://github.com/PaperKidz/IntervueSense.git
 cd IntervueSense
 ```
 
-Configure environment variables:
+---
+
+## ⚙️ Step 2: Environment Configuration
+
+Create `.env` files for each service using the provided examples:
 
 ```bash
-cd Backend
-# Copy example environment file
-# Windows:
-copy .env.example .env
-# macOS/Linux:
-cp .env.example .env
+# From project root
+cp Backend/.env.example Backend/.env
+cp backend-nodejs/.env.example backend-nodejs/.env
+cp Frontend/.env.example Frontend/.env
 ```
 
-Edit `.env` and add your OpenAI API key:
+Then open each `.env` file and fill in your credentials.  
+For example, in **Backend/.env**:
 
 ```env
-OPENAI_API_KEY="sk-your-secret-key"
+OPENAI_API_KEY=sk-your-secret-key
 ```
 
-Return to the project root:
-
-```bash
-cd ..
-```
+Make sure all `.env` files contain correct paths, ports, and API keys.
 
 ---
 
-# ⚙️ Step 2: Install Dependencies
+## 🐳 Step 3: Build & Run with Docker
 
-### Backend Setup
-
-```bash
-cd Backend
-python -m venv venv
-# Activate virtual environment
-# Windows:
-.\venv\Scripts\activate
-# macOS/Linux:
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Frontend Setup (Vite)
+Run the following command from the project root:
 
 ```bash
-cd ../Frontend
-npm install
+docker-compose up --build
 ```
 
----
+Docker will automatically:
 
-# 🌍 Step 3: Configure Nginx
+1. Build images for Flask, Node.js, and React (Vite)
+2. Set up network and environment variables
+3. Start Nginx as a reverse proxy routing between frontend and backend containers
 
-The provided `nginx.conf` routes frontend and backend traffic automatically.
-
-Copy it to your Nginx configuration directory:
-
-* **Windows:** `C:\nginx\conf\nginx.conf`
-* **macOS/Linux:** `/etc/nginx/nginx.conf`
-
-Replace the default Nginx config file with this one.
-
----
-
-# ▶️ Step 4: Run the Application
-
-### Start Nginx
-
-* **Windows**
-
-```bash
-cd C:\nginx
-start nginx
-```
-
-* **macOS/Linux**
-
-```bash
-sudo nginx
-```
-
-### Start Frontend + Backend in Dev Mode (Vite)
-
-```bash
-cd Frontend
-npm run dev
-```
-
-This will run:
-
-* Flask backend on `http://localhost:5000`
-* Vite dev server (React frontend) on `http://localhost:3000`
-* Nginx routes `/api` to backend and `/` to frontend
-
-Open your browser:
+Once the build completes, open your browser:
 
 ```text
 http://localhost
@@ -150,25 +80,56 @@ http://localhost
 
 ---
 
-# 🧠 Tech Stack
+## ⚡ Project Structure
 
-* **Frontend:** React + Vite, TailwindCSS
-* **Backend:** Flask, DeepFace, OpenCV, OpenAI API
-* **Speech Processing:** SpeechRecognition, Pydub, FFmpeg
-* **Reverse Proxy:** Nginx
+```
+VirtueSense/
+│
+├── Backend/                # Flask backend (Python)
+│   ├── app.py
+│   ├── requirements.txt
+│   ├── .env.example
+│
+├── backend-nodejs/         # Node.js microservice backend
+│   ├── server.js
+│   ├── package.json
+│   ├── .env.example
+│
+├── Frontend/               # React + Vite frontend
+│   ├── vite.config.js
+│   ├── package.json
+│   ├── .env.example
+│
+├── nginx/
+│   └── nginx.conf          # Reverse proxy configuration
+│
+├── docker-compose.yml
+└── README.md
+```
 
 ---
 
-# 🔌 API Endpoints
+## 🌍 Default Service URLs
 
-| Endpoint             | Method | Description                                           |
-| -------------------- | ------ | ----------------------------------------------------- |
-| `/api/analyze_face`  | POST   | Analyzes facial emotion from base64 or uploaded image |
-| `/api/analyze_audio` | POST   | Processes audio input for tone and emotion            |
-| `/api/transcribe`    | POST   | Converts user audio speech to text                    |
-| `/api/feedback`      | POST   | Generates AI-driven feedback based on performance     |
+| Service | URL | Description |
+|----------|-----|-------------|
+| **Frontend (React)** | `http://localhost` | Main user interface |
+| **Flask Backend** | `http://localhost:5000` | AI & DeepFace analysis |
+| **Node.js Backend** | `http://localhost:4000` | Evaluation, progress APIs |
+| **Nginx** | `http://localhost` | Reverse proxy to all services |
 
-**Example cURL request:**
+---
+
+## 🔌 API Endpoints (Flask Backend)
+
+| Endpoint | Method | Description |
+| --------- | ------ | ----------- |
+| `/api/analyze_face` | POST | Analyze facial emotion from base64 or uploaded image |
+| `/api/analyze_audio` | POST | Process audio input for tone & emotion |
+| `/api/transcribe` | POST | Convert user audio speech to text |
+| `/api/feedback` | POST | Generate AI-based feedback |
+
+**Example request:**
 
 ```bash
 curl -X POST http://localhost/api/analyze_face \
@@ -178,4 +139,42 @@ curl -X POST http://localhost/api/analyze_face \
 
 ---
 
+## 🧠 Tech Stack
 
+* **Frontend:** React + Vite, TailwindCSS  
+* **Backend (AI):** Flask, DeepFace, OpenCV, OpenAI API  
+* **Backend (Logic):** Node.js + Express  
+* **Speech Processing:** SpeechRecognition, Pydub, FFmpeg  
+* **Reverse Proxy:** Nginx  
+* **Containerization:** Docker & Docker Compose  
+
+---
+
+## 🧰 Useful Commands
+
+| Command | Description |
+| -------- | ------------ |
+| `docker-compose up --build` | Build and start all containers |
+| `docker-compose down` | Stop and remove all containers |
+| `docker-compose logs -f` | View live logs from all services |
+| `docker system prune -a` | Clean up all unused Docker data |
+
+---
+
+## 🧩 Troubleshooting
+
+* **Ports already in use?**  
+  Stop existing services using those ports or modify them in `.env` and `docker-compose.yml`.
+
+* **Changes not reflecting?**  
+  Run `docker-compose up --build` again to rebuild with latest updates.
+
+* **Nginx 502 Bad Gateway?**  
+  Ensure both backends are healthy (`docker ps`) and reachable inside the network.
+
+---
+
+## 🏁 Done!
+
+Visit **http://localhost** to start your AI-powered interview simulation.  
+Docker will take care of running everything — no manual setup needed.

@@ -3,11 +3,24 @@
 # ================================
 .env
 .env.*
-!/.env.example
+!.env.example
+
+# ================================
+# 🐳 Docker
+# ================================
+# Docker volumes and data
+postgres-data/
+*.log
 
 # ================================
 # 🐍 Python (Flask Backend)
 # ================================
+Backend/venv/
+Backend/__pycache__/
+Backend/*.pyc
+Backend/*.pyo
+Backend/*.pyd
+Backend/.env
 Backend/venv/
 __pycache__/
 *.pyc
@@ -20,16 +33,21 @@ __pycache__/
 # Node backend
 backend-nodejs/node_modules/
 backend-nodejs/package-lock.json
+backend-nodejs/.env
 
 # Frontend
 Frontend/node_modules/
 Frontend/build/
+Frontend/dist/
+Frontend/.env
+Frontend/.env.local
 
 # Common
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
+package-lock.json
 
 # ================================
 # 🧰 Misc
@@ -39,3 +57,12 @@ temp/
 .DS_Store
 *.log
 ignore.txt
+
+# ================================
+# 📝 IDE
+# ================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

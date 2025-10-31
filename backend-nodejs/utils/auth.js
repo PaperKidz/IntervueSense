@@ -1,15 +1,15 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
-const hashPassword = (password) => {
+export const hashPassword = (password) => {
   return bcrypt.hashSync(password, 10);
 };
 
-const comparePassword = (password, hash) => {
+export const comparePassword = (password, hash) => {
   return bcrypt.compareSync(password, hash);
 };
 
-const generateToken = (userId) => {
+export const generateToken = (userId) => {
   return jwt.sign(
     { userId },
     process.env.JWT_SECRET,
@@ -17,19 +17,11 @@ const generateToken = (userId) => {
   );
 };
 
-const validateEmail = (email) => {
+export const validateEmail = (email) => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return re.test(email);
 };
 
-const validatePassword = (password) => {
+export const validatePassword = (password) => {
   return password && password.length >= 6;
-};
-
-module.exports = {
-  hashPassword,
-  comparePassword,
-  generateToken,
-  validateEmail,
-  validatePassword
 };

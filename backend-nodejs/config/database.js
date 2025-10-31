@@ -9,15 +9,14 @@ const connectDB = async () => {
     client = new MongoClient(MONGO_URI);
     await client.connect();
     
-    // Connect to VirtueSense database
-    const db = client.db('VirtueSense');
+    // Connect to virtuesense database (lowercase to match existing)
+    const db = client.db('virtuesense');
     usersCollection = db.collection('users');
     
-    // Create indexes
-    await usersCollection.createIndex({ email: 1 }, { unique: true, sparse: true });
+    // Skip index creation - it already exists in the database
     
     console.log('✅ MongoDB Connected Successfully');
-    console.log(`📦 Database: VirtueSense`);
+    console.log(`📦 Database: virtuesense`);
   } catch (err) {
     console.error('❌ MongoDB Connection Error:', err.message);
     process.exit(1);
@@ -38,8 +37,5 @@ const closeConnection = async () => {
   }
 };
 
-// ✅ ES6 default export
 export default connectDB;
-
-// ✅ Named exports
 export { getUsersCollection, closeConnection };

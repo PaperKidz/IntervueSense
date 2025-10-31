@@ -114,7 +114,7 @@ def transcribe_audio():
         import subprocess
         try:
             subprocess.run([
-                r"C:\ffmpeg\bin\ffmpeg.exe",
+                r"ffmpeg",
                 "-i", webm_path,
                 "-acodec", "pcm_s16le",
                 "-ar", "16000",
@@ -297,7 +297,7 @@ def analyze_voice_comprehensive():
         try:
             import subprocess
             subprocess.run([
-                r"C:\ffmpeg\bin\ffmpeg.exe",
+                r"ffmpeg",
                 "-i", webm_path,
                 "-acodec", "pcm_s16le",
                 "-ar", "16000",
