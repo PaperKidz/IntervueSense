@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true, // ✅ allows access from network & Nginx
-    // No proxy needed - Nginx handles everything
+    host: true,
+    watch: {
+      usePolling: true, // 👈 Important for Docker/Windows
+    },
   },
   build: {
     outDir: "dist",

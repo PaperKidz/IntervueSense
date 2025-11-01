@@ -14,5 +14,5 @@ COPY . .
 # Expose Node.js API port
 EXPOSE 4000
 
-# Start server
-CMD ["npm", "start"]
+# 👇 CHANGE THIS LINE - Use dev script with nodemon
+CMD ["npm", "run", "dev"]
