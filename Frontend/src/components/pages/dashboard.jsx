@@ -51,6 +51,7 @@ export default function VirtueSenseDashboard() {
         { name: 'Fear', value: 0, color: '#8b5cf6' },
         { name: 'Disgust', value: 0, color: '#06B6D4' }
     ]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
@@ -582,34 +583,31 @@ export default function VirtueSenseDashboard() {
     };
 
     const handleCompleteSession = async () => {
-        if (!moduleId || !sectionId || !practiceId) {
-            console.error('Missing practice identifiers');
-            return;
-        }
+    if (!moduleId || !sectionId || !practiceId) {
+        console.error('Missing practice identifiers');
+        return;
+    }
 
-        try {
-            const sessionData = {
-                overallScore,
-                averageConfidence: emotionHistory.reduce((sum, item) => sum + item.confidence, 0) / emotionHistory.length,
-                averageEngagement: emotionHistory.reduce((sum, item) => sum + item.engagement, 0) / emotionHistory.length,
-                answerScore: answerScore?.score || 0,
-                sessionDuration: sessionTime,
-                transcriptCount: transcriptions.length
-            };
+    try {
+        const sessionData = {
+            overallScore,
+            averageConfidence: emotionHistory.reduce((sum, item) => sum + item.confidence, 0) / emotionHistory.length,
+            averageEngagement: emotionHistory.reduce((sum, item) => sum + item.engagement, 0) / emotionHistory.length,
+            answerScore: answerScore?.score || 0,
+            sessionDuration: sessionTime,
+            transcriptCount: transcriptions.length
+        };
 
-            await completePractice(moduleId, sectionId, practiceId, sessionData);
+        await completePractice(moduleId, sectionId, practiceId, sessionData);
+        
+        // Show modal instead of alert
+        setShowSuccessModal(true);
 
-            alert('Practice completed! Progress saved.');
-
-            setTimeout(() => {
-                navigate(`/dashboard?module=${moduleId}`);
-            }, 1500);
-
-        } catch (error) {
-            console.error('Failed to save progress:', error);
-            alert('Failed to save progress. Please try again.');
-        }
-    };
+    } catch (error) {
+        console.error('Failed to save progress:', error);
+        alert('Failed to save progress. Please try again.');
+    }
+};
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -713,7 +711,10 @@ export default function VirtueSenseDashboard() {
                 emotionHistory.reduce((sum, item) => sum + item.composure, 0) / emotionHistory.length) / 3
         )
         : 0;
-
+    const handleContinue = () => {
+    setShowSuccessModal(false);
+    navigate(`/maindash?module=${moduleId}`);
+};    
     const radarData = voiceAnalysis ? [
         {
             metric: 'Confidence',
@@ -1104,6 +1105,37 @@ export default function VirtueSenseDashboard() {
         Score 7 or above required to complete
       </p>
     )}
+  </div>
+)}
+{/* Success Modal */}
+{showSuccessModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 transform transition-all">
+      <div className="text-center">
+        {/* Success Icon */}
+        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <CheckCircle className="w-12 h-12 text-green-600" />
+        </div>
+        
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Practice Completed!
+        </h2>
+        
+        {/* Message */}
+        <p className="text-gray-600 mb-6">
+          Great job! Your progress has been saved successfully. Keep up the excellent work!
+        </p>
+        
+        {/* Button */}
+        <button
+          onClick={handleContinue}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors"
+        >
+          Continue to Dashboard
+        </button>
+      </div>
+    </div>
   </div>
 )}
 
