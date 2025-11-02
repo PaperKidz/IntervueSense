@@ -399,18 +399,8 @@ const TheoryPage = () => {
           </div>
         </div>
 
-        {/* Help Text */}
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
-            Having trouble? Contact support or return to the{" "}
-            <button
-              onClick={() => navigate("/maindash")}
-              className="text-indigo-600 hover:text-indigo-700 font-medium underline"
-            >
-              main dashboard
-            </button>
-          </p>
-        </div>
+       
+        
       </div>
 
       {/* Success Modal */}

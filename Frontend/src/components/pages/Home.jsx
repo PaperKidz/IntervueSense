@@ -1,3 +1,4 @@
+import authService from '../../services/auth.service';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStatus } from '../shared/NavBar'; // Import the custom hook
@@ -62,6 +63,7 @@ export default function Home() {
       color: "from-green-400 to-emerald-500"
     }
   ];
+  
   const howItWorks = [
     {
       icon: <Target className="w-16 h-16" />,
@@ -116,7 +118,7 @@ export default function Home() {
     }
   ];
 
-
+  // Home page has its own design - no Layout wrapper needed
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Hero Section */}
@@ -283,6 +285,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
       {/* How It Works Section */}
       <section id="how-it-works" className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -373,6 +376,7 @@ export default function Home() {
           </div>
         </div>
       </section>
+      
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -391,7 +395,8 @@ export default function Home() {
           </button>
         </div>
       </section>
-       {/* Testimonial Section */}
+      
+      {/* Testimonial Section */}
       <section className="py-20 bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-white rounded-2xl shadow-2xl p-8 lg:p-12">

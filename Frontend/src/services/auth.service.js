@@ -112,7 +112,10 @@ const authService = {
     const user = localStorage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
   },
-
+  
+  getCurrentUser() {
+  return this.getUser();
+},
   /**
    * Decode JWT (to check expiry)
    */

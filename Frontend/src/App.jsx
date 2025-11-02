@@ -7,6 +7,7 @@ import Dashboard from './components/pages/dashboard';
 
 import MainDash from './components/pages/Maindash';
 import TheoryPage from './components/pages/TheoryPage';
+import SettingsPage from './components/pages/SettingsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import { ProgressProvider } from './contexts/ProgressContext';
 import NavBar from './components/shared/NavBar';
@@ -26,10 +27,10 @@ function App() {
 
   return (
     <ProgressProvider>
-      {/* ✅ Conditionally render NavBar */}
-      {!hideNavAndFooter && <NavBar />}
-    <DevTools /> 
-      <main className="min-h-screen">
+    {/* ✅ Conditionally render NavBar */}
+    {!hideNavAndFooter && <NavBar />}
+  <DevTools /> 
+    <main className="min-h-screen">
         <Routes>
           {/* Public Routes */}
           <Route
@@ -63,6 +64,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TheoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
               </ProtectedRoute>
             }
           />

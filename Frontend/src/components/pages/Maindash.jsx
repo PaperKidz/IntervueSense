@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import authService from '../../services/auth.service';
 import { useProgress } from '../../contexts/ProgressContext';
 import { modules, getModuleById } from '../../data/modulesData'; 
+import Layout from '../shared/Layout';
 
 const ModuleDashboard = () => {
   const navigate = useNavigate();
@@ -165,74 +166,76 @@ const ModuleDashboard = () => {
     const overallProgress = getOverallProgress();
 
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          {/* Overall Progress */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-sm font-medium text-gray-700 mb-1">Overall Progress</p>
-                <p className="text-2xl font-semibold text-gray-900">{overallProgress.percentage}%</p>
+       <Layout>
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            {/* Overall Progress */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Overall Progress</p>
+                  <p className="text-2xl font-semibold text-gray-900">{overallProgress.percentage}%</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">{overallProgress.completed} of {overallProgress.total} lessons completed</p>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-500">{overallProgress.completed} of {overallProgress.total} lessons completed</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${overallProgress.percentage}%` }} />
               </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${overallProgress.percentage}%` }} />
-            </div>
-          </div>
 
-          {/* Module Cards */}
-          {progressLoading ? (
-            <div className="text-center py-12">
-              <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-gray-500 mt-4">Loading your progress...</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {modules.map((module) => {
-                const moduleCompletion = getModuleCompletion(module);
+            {/* Module Cards */}
+            {progressLoading ? (
+              <div className="text-center py-12">
+                <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                <p className="text-gray-500 mt-4">Loading your progress...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {modules.map((module) => {
+                  const moduleCompletion = getModuleCompletion(module);
 
-                return (
-                  <button
-                    key={module.id}
-                    onClick={() => openModule(module.id)}
-                    className="bg-white rounded-lg border border-gray-200 p-6 text-left hover:shadow-lg hover:border-indigo-300 transition-all duration-200 group"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
-                        <BookOpen className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors" />
-                      </div>
-                      {moduleCompletion.percentage === 100 && <CheckCircle2 className="w-6 h-6 text-green-600" />}
-                    </div>
-
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">Module {module.id}</h3>
-                    <p className="text-base font-medium text-gray-700 mb-2">{module.title}</p>
-                    <p className="text-sm text-gray-600 mb-4">{module.description}</p>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">{module.sections.length} sections • {moduleCompletion.total} lessons</span>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">Progress</span>
-                          <span className="text-sm font-semibold text-gray-900">{moduleCompletion.percentage}%</span>
+                  return (
+                    <button
+                      key={module.id}
+                      onClick={() => openModule(module.id)}
+                      className="bg-white rounded-lg border border-gray-200 p-6 text-left hover:shadow-lg hover:border-indigo-300 transition-all duration-200 group"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-lg bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
+                          <BookOpen className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors" />
                         </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${moduleCompletion.percentage}%` }} />
+                        {moduleCompletion.percentage === 100 && <CheckCircle2 className="w-6 h-6 text-green-600" />}
+                      </div>
+
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">Module {module.id}</h3>
+                      <p className="text-base font-medium text-gray-700 mb-2">{module.title}</p>
+                      <p className="text-sm text-gray-600 mb-4">{module.description}</p>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">{module.sections.length} sections • {moduleCompletion.total} lessons</span>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">Progress</span>
+                            <span className="text-sm font-semibold text-gray-900">{moduleCompletion.percentage}%</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-indigo-600 h-2 rounded-full transition-all duration-500" style={{ width: `${moduleCompletion.percentage}%` }} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
         </div>
       </div>
+      </Layout>
     );
   }
 
@@ -240,7 +243,7 @@ const ModuleDashboard = () => {
   const completion = getModuleCompletion(selectedModule);
 
   return (
-    
+     <Layout>
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Button */}
@@ -428,6 +431,7 @@ const ModuleDashboard = () => {
         </div>
       </div>
     </div>
+    </Layout>
   );
 };
 
