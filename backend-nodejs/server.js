@@ -4,7 +4,12 @@ import cors from "cors";
 import connectDB from "./config/database.js";
 import progressRoutes from "./routes/progress.routes.js";
 import authRoutes from "./routes/auth.js";
-import aiRoutes from "./routes/ai.js"; // ✅ ADD THIS LINE
+import aiRoutes from "./routes/ai.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +22,11 @@ app.set("trust proxy", 1);
 // ✅ Middleware - Parse JSON and URL-encoded data
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ✅ CRITICAL: Serve static files from uploads directory
+// This must come BEFORE other routes
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+console.log('📁 Static files served from:', path.join(__dirname, 'uploads'));
 
 // ✅ CORS Configuration - Simplified for Nginx proxy
 app.use(
@@ -44,7 +54,7 @@ connectDB();
 // ✅ API Routes
 app.use("/api/progress", progressRoutes);
 app.use("/api/auth", authRoutes);
-app.use("/api/ai", aiRoutes); // ✅ ADD THIS LINE (Mount AI routes)
+app.use("/api/ai", aiRoutes);
 
 // ✅ Health check route
 app.get("/", (req, res) => {
@@ -64,7 +74,7 @@ app.get("/api", (req, res) => {
       auth: "/api/auth",
       progress: "/api/progress/my",
       complete: "/api/progress/complete",
-      ai: "/api/ai/evaluate-answer", // ✅ Helpful info for testing
+      ai: "/api/ai/evaluate-answer",
     },
   });
 });

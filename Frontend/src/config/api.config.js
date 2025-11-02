@@ -16,6 +16,15 @@ const API_CONFIG = {
       RESET_PASSWORD: '/api/auth/reset-password',
     },
     
+    // User Management (Node.js via Nginx) - Phase 2
+    USER: {
+      UPDATE_PROFILE: '/api/auth/user/profile',
+      CHANGE_PASSWORD: '/api/auth/user/password',
+      DELETE_ACCOUNT: '/api/auth/user/account',
+      UPLOAD_AVATAR: '/api/auth/user/avatar',
+      DELETE_AVATAR: '/api/auth/user/avatar',
+    },
+    
     // Interview Analysis (Flask via Nginx)
     INTERVIEW: {
       ANALYZE_EMOTION: '/api/analyze-emotion',

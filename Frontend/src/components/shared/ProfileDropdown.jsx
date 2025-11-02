@@ -2,22 +2,61 @@ import { useState, useEffect, useRef } from 'react';
 import { User, LogOut, Moon, Sun } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth.service';
+import API_CONFIG from '../../config/api.config';
 
 export default function ProfileDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
+  const [userData, setUserData] = useState({
+    name: '',
+    email: '',
+    avatar: null
+  });
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
-  // Get user data from auth service
+  // Load user data and listen for changes
   useEffect(() => {
-    const user = authService.getCurrentUser();
-    if (user) {
-      setUserName(user.name || user.username || 'User');
-      setUserEmail(user.email || '');
-    }
+    const loadUserData = () => {
+      const user = authService.getCurrentUser();
+      if (user) {
+        setUserData({
+          name: user.name || user.username || 'User',
+          email: user.email || '',
+          avatar: user.avatar || null
+        });
+      }
+    };
+
+    // Load initial data
+    loadUserData();
+
+    // Listen for storage changes (updates from other tabs/windows)
+    const handleStorageChange = (e) => {
+      if (e.key === 'user' || e.key === null) {
+        loadUserData();
+      }
+    };
+
+    // Listen for custom auth changes (updates from same tab)
+    const handleAuthChange = () => {
+      loadUserData();
+    };
+
+    // Listen for profile updates
+    const handleProfileUpdate = () => {
+      loadUserData();
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('profileUpdate', handleProfileUpdate);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('profileUpdate', handleProfileUpdate);
+    };
   }, []);
 
   // Close dropdown when clicking outside
@@ -75,10 +114,18 @@ export default function ProfileDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
       >
-        <div className={`w-10 h-10 rounded-full ${getAvatarColor(userName)} flex items-center justify-center text-white font-semibold`}>
-          {getInitials(userName)}
-        </div>
-        <span className="hidden md:block text-sm font-medium text-gray-700">{userName}</span>
+        {userData.avatar ? (
+          <img
+            src={`${API_CONFIG.BASE_URL}${userData.avatar}`}
+            alt={userData.name}
+            className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+          />
+        ) : (
+          <div className={`w-10 h-10 rounded-full ${getAvatarColor(userData.name)} flex items-center justify-center text-white font-semibold`}>
+            {getInitials(userData.name)}
+          </div>
+        )}
+        <span className="hidden md:block text-sm font-medium text-gray-700">{userData.name}</span>
       </button>
 
       {/* Dropdown Menu */}
@@ -86,8 +133,23 @@ export default function ProfileDropdown() {
         <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-gray-100">
-            <p className="text-sm font-semibold text-gray-900">{userName}</p>
-            <p className="text-xs text-gray-500 truncate">{userEmail}</p>
+            <div className="flex items-center gap-3 mb-2">
+              {userData.avatar ? (
+                <img
+                  src={`${API_CONFIG.BASE_URL}${userData.avatar}`}
+                  alt={userData.name}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className={`w-12 h-12 rounded-full ${getAvatarColor(userData.name)} flex items-center justify-center text-white font-semibold text-lg`}>
+                  {getInitials(userData.name)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">{userData.name}</p>
+                <p className="text-xs text-gray-500 truncate">{userData.email}</p>
+              </div>
+            </div>
           </div>
 
           {/* Menu Items */}

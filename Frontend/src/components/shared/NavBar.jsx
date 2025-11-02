@@ -27,7 +27,7 @@ export function useAuthStatus() {
   return isLoggedIn;
 }
 
-export default function NavBar() {
+export default function NavBar({ onToggleSideNav, isSideNavOpen }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = useNavigate();
